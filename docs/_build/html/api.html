@@ -1,0 +1,1041 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>API Reference &mdash; Local Inference Calculator 0.1.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=01f34227"></script>
+      <script src="_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Examples" href="examples.html" />
+    <link rel="prev" title="User Guide" href="usage.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            Local Inference Calculator
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents / Conteúdo:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="usage.html">User Guide</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">API Reference</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#modules">Modules</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#module-models">models</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#models.LLMModel"><code class="docutils literal notranslate"><span class="pre">LLMModel</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#models.get_model_by_size"><code class="docutils literal notranslate"><span class="pre">get_model_by_size()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#models.get_all_models"><code class="docutils literal notranslate"><span class="pre">get_all_models()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#module-gpus">gpus</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#gpus.GPUType"><code class="docutils literal notranslate"><span class="pre">GPUType</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#gpus.GPU"><code class="docutils literal notranslate"><span class="pre">GPU</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#gpus.get_gpu_by_name"><code class="docutils literal notranslate"><span class="pre">get_gpu_by_name()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#gpus.get_consumer_gpus"><code class="docutils literal notranslate"><span class="pre">get_consumer_gpus()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#gpus.get_datacenter_gpus"><code class="docutils literal notranslate"><span class="pre">get_datacenter_gpus()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#gpus.get_all_gpus"><code class="docutils literal notranslate"><span class="pre">get_all_gpus()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#gpus.get_gpus_by_vram_min"><code class="docutils literal notranslate"><span class="pre">get_gpus_by_vram_min()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#module-calculator">calculator</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#calculator.Quantization"><code class="docutils literal notranslate"><span class="pre">Quantization</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#calculator.Status"><code class="docutils literal notranslate"><span class="pre">Status</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#calculator.InferenceResult"><code class="docutils literal notranslate"><span class="pre">InferenceResult</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#calculator.CalculationBreakdown"><code class="docutils literal notranslate"><span class="pre">CalculationBreakdown</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#calculator.VRAMCalculator"><code class="docutils literal notranslate"><span class="pre">VRAMCalculator</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#calculator.calculate_inference"><code class="docutils literal notranslate"><span class="pre">calculate_inference()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#module-main">main</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#main.print_table"><code class="docutils literal notranslate"><span class="pre">print_table()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#main.print_summary_by_model"><code class="docutils literal notranslate"><span class="pre">print_summary_by_model()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#main.print_summary_by_gpu"><code class="docutils literal notranslate"><span class="pre">print_summary_by_gpu()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#main.export_csv"><code class="docutils literal notranslate"><span class="pre">export_csv()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#main.export_json"><code class="docutils literal notranslate"><span class="pre">export_json()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#main.parse_args"><code class="docutils literal notranslate"><span class="pre">parse_args()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#main.main"><code class="docutils literal notranslate"><span class="pre">main()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="examples.html">Examples</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">Local Inference Calculator</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">API Reference</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/api.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="api-reference">
+<h1>API Reference<a class="headerlink" href="#api-reference" title="Link to this heading"></a></h1>
+<section id="modules">
+<h2>Modules<a class="headerlink" href="#modules" title="Link to this heading"></a></h2>
+<section id="module-models">
+<span id="models"></span><h3>models<a class="headerlink" href="#module-models" title="Link to this heading"></a></h3>
+<p>Database of LLM models available in the market.</p>
+<p>Each model contains metadata for VRAM usage calculation during inference.</p>
+<p>Base de dados de modelos LLM disponíveis no mercado.
+Cada modelo possui metadados para cálculo de uso de VRAM em inferência.</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="models.LLMModel">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">models.</span></span><span class="sig-name descname"><span class="pre">LLMModel</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">params_billion</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">architecture</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">precision_default</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">kv_cache_mb_per_token</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><span class="pre">float</span></a></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/models.html#LLMModel"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#models.LLMModel" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>Represents an LLM model with metadata for inference.</p>
+<p>Represents an LLM model with metadata for inference.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="models.LLMModel.name">
+<span class="sig-name descname"><span class="pre">name</span></span><a class="headerlink" href="#models.LLMModel.name" title="Link to this definition"></a></dt>
+<dd><p>Model name</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)">str</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="models.LLMModel.params_billion">
+<span class="sig-name descname"><span class="pre">params_billion</span></span><a class="headerlink" href="#models.LLMModel.params_billion" title="Link to this definition"></a></dt>
+<dd><p>Number of parameters in billions</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)">int</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="models.LLMModel.architecture">
+<span class="sig-name descname"><span class="pre">architecture</span></span><a class="headerlink" href="#models.LLMModel.architecture" title="Link to this definition"></a></dt>
+<dd><p>Model architecture (e.g., “decoder-only”)</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)">str</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="models.LLMModel.precision_default">
+<span class="sig-name descname"><span class="pre">precision_default</span></span><a class="headerlink" href="#models.LLMModel.precision_default" title="Link to this definition"></a></dt>
+<dd><p>Default precision (e.g., “fp16”)</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)">str</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="models.LLMModel.kv_cache_mb_per_token">
+<span class="sig-name descname"><span class="pre">kv_cache_mb_per_token</span></span><a class="headerlink" href="#models.LLMModel.kv_cache_mb_per_token" title="Link to this definition"></a></dt>
+<dd><p>KV cache in MB per token (conservative FP16 estimate)</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)">float</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="id0">
+<span class="sig-name descname"><span class="pre">name</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span><a class="headerlink" href="#id0" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="id1">
+<span class="sig-name descname"><span class="pre">params_billion</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a></span><a class="headerlink" href="#id1" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="id2">
+<span class="sig-name descname"><span class="pre">architecture</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span><a class="headerlink" href="#id2" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="id3">
+<span class="sig-name descname"><span class="pre">precision_default</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span><a class="headerlink" href="#id3" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="id4">
+<span class="sig-name descname"><span class="pre">kv_cache_mb_per_token</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><span class="pre">float</span></a></span><a class="headerlink" href="#id4" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="models.LLMModel.size_label">
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">size_label</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span><a class="headerlink" href="#models.LLMModel.size_label" title="Link to this definition"></a></dt>
+<dd><p>Returns simplified size label (e.g., ‘7B’, ‘13B’).</p>
+<p>Retorna label simplificado do tamanho (ex: ‘7B’, ‘13B’).</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="models.LLMModel.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">params_billion</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">architecture</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">precision_default</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">kv_cache_mb_per_token</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><span class="pre">float</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span></span><a class="headerlink" href="#models.LLMModel.__init__" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="models.get_model_by_size">
+<span class="sig-prename descclassname"><span class="pre">models.</span></span><span class="sig-name descname"><span class="pre">get_model_by_size</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">size_billion</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#models.LLMModel" title="models.LLMModel"><span class="pre">LLMModel</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span></span><a class="reference internal" href="_modules/models.html#get_model_by_size"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#models.get_model_by_size" title="Link to this definition"></a></dt>
+<dd><p>Returns a model by its size in billions of parameters.</p>
+<p>Retorna um modelo pelo tamanho em bilhões de parâmetros.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>size_billion</strong> – Model size in billions of parameters</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>LLMModel if found, None otherwise</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="models.get_all_models">
+<span class="sig-prename descclassname"><span class="pre">models.</span></span><span class="sig-name descname"><span class="pre">get_all_models</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.List" title="(in Python v3.14)"><span class="pre">List</span></a><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#models.LLMModel" title="models.LLMModel"><span class="pre">LLMModel</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/models.html#get_all_models"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#models.get_all_models" title="Link to this definition"></a></dt>
+<dd><p>Returns all available models.</p>
+<p>Retorna todos os modelos disponíveis.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>List of all LLMModel instances</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+<section id="module-gpus">
+<span id="gpus"></span><h3>gpus<a class="headerlink" href="#module-gpus" title="Link to this heading"></a></h3>
+<p>Database of GPUs available in the market.</p>
+<p>Includes consumer and datacenter GPUs with their VRAM capacities.</p>
+<p>Base de dados de GPUs disponíveis no mercado.
+Inclui GPUs consumer e datacenter com suas capacidades de VRAM.</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="gpus.GPUType">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">gpus.</span></span><span class="sig-name descname"><span class="pre">GPUType</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">values</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/gpus.html#GPUType"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#gpus.GPUType" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/enum.html#enum.Enum" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Enum</span></code></a></p>
+<p>GPU type: consumer or datacenter.</p>
+<p>Tipo de GPU: consumer ou datacenter.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="gpus.GPUType.CONSUMER">
+<span class="sig-name descname"><span class="pre">CONSUMER</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'consumer'</span></span><a class="headerlink" href="#gpus.GPUType.CONSUMER" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="gpus.GPUType.DATACENTER">
+<span class="sig-name descname"><span class="pre">DATACENTER</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'datacenter'</span></span><a class="headerlink" href="#gpus.GPUType.DATACENTER" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="gpus.GPU">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">gpus.</span></span><span class="sig-name descname"><span class="pre">GPU</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">vram_gb</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">type</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#gpus.GPUType" title="gpus.GPUType"><span class="pre">GPUType</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">memory_bandwidth_gb_s</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">architecture</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/gpus.html#GPU"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#gpus.GPU" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>Represents a GPU with its VRAM capacity.</p>
+<p>Representa uma GPU com sua capacidade de VRAM.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="gpus.GPU.name">
+<span class="sig-name descname"><span class="pre">name</span></span><a class="headerlink" href="#gpus.GPU.name" title="Link to this definition"></a></dt>
+<dd><p>GPU model name</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)">str</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="gpus.GPU.vram_gb">
+<span class="sig-name descname"><span class="pre">vram_gb</span></span><a class="headerlink" href="#gpus.GPU.vram_gb" title="Link to this definition"></a></dt>
+<dd><p>VRAM capacity in GB</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)">int</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="gpus.GPU.type">
+<span class="sig-name descname"><span class="pre">type</span></span><a class="headerlink" href="#gpus.GPU.type" title="Link to this definition"></a></dt>
+<dd><p>GPU type (consumer or datacenter)</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="#gpus.GPUType" title="gpus.GPUType">gpus.GPUType</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="gpus.GPU.memory_bandwidth_gb_s">
+<span class="sig-name descname"><span class="pre">memory_bandwidth_gb_s</span></span><a class="headerlink" href="#gpus.GPU.memory_bandwidth_gb_s" title="Link to this definition"></a></dt>
+<dd><p>Memory bandwidth in GB/s (optional, for future calculations)</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)">int</a> | None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="gpus.GPU.architecture">
+<span class="sig-name descname"><span class="pre">architecture</span></span><a class="headerlink" href="#gpus.GPU.architecture" title="Link to this definition"></a></dt>
+<dd><p>GPU architecture name (optional, for information)</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)">str</a> | None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="id5">
+<span class="sig-name descname"><span class="pre">name</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span><a class="headerlink" href="#id5" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="id6">
+<span class="sig-name descname"><span class="pre">vram_gb</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a></span><a class="headerlink" href="#id6" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="id7">
+<span class="sig-name descname"><span class="pre">type</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="#gpus.GPUType" title="gpus.GPUType"><span class="pre">GPUType</span></a></span><a class="headerlink" href="#id7" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="id8">
+<span class="sig-name descname"><span class="pre">memory_bandwidth_gb_s</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></span><a class="headerlink" href="#id8" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="id9">
+<span class="sig-name descname"><span class="pre">architecture</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></span><a class="headerlink" href="#id9" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="gpus.GPU.vram_label">
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">vram_label</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span><a class="headerlink" href="#gpus.GPU.vram_label" title="Link to this definition"></a></dt>
+<dd><p>Returns formatted VRAM label (e.g., ‘24GB’).</p>
+<p>Retorna label formatado da VRAM (ex: ‘24GB’).</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="gpus.GPU.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">vram_gb</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">type</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#gpus.GPUType" title="gpus.GPUType"><span class="pre">GPUType</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">memory_bandwidth_gb_s</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">architecture</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span></span><a class="headerlink" href="#gpus.GPU.__init__" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="gpus.get_gpu_by_name">
+<span class="sig-prename descclassname"><span class="pre">gpus.</span></span><span class="sig-name descname"><span class="pre">get_gpu_by_name</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#gpus.GPU" title="gpus.GPU"><span class="pre">GPU</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span></span><a class="reference internal" href="_modules/gpus.html#get_gpu_by_name"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#gpus.get_gpu_by_name" title="Link to this definition"></a></dt>
+<dd><p>Returns a GPU by exact name.</p>
+<p>Retorna uma GPU pelo nome exato.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>name</strong> – GPU name to search for</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>GPU if found, None otherwise</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="gpus.get_consumer_gpus">
+<span class="sig-prename descclassname"><span class="pre">gpus.</span></span><span class="sig-name descname"><span class="pre">get_consumer_gpus</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.List" title="(in Python v3.14)"><span class="pre">List</span></a><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#gpus.GPU" title="gpus.GPU"><span class="pre">GPU</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/gpus.html#get_consumer_gpus"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#gpus.get_consumer_gpus" title="Link to this definition"></a></dt>
+<dd><p>Returns all consumer GPUs.</p>
+<p>Retorna todas as GPUs consumer.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>List of consumer GPUs</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="gpus.get_datacenter_gpus">
+<span class="sig-prename descclassname"><span class="pre">gpus.</span></span><span class="sig-name descname"><span class="pre">get_datacenter_gpus</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.List" title="(in Python v3.14)"><span class="pre">List</span></a><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#gpus.GPU" title="gpus.GPU"><span class="pre">GPU</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/gpus.html#get_datacenter_gpus"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#gpus.get_datacenter_gpus" title="Link to this definition"></a></dt>
+<dd><p>Returns all datacenter GPUs.</p>
+<p>Retorna todas as GPUs datacenter.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>List of datacenter GPUs</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="gpus.get_all_gpus">
+<span class="sig-prename descclassname"><span class="pre">gpus.</span></span><span class="sig-name descname"><span class="pre">get_all_gpus</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.List" title="(in Python v3.14)"><span class="pre">List</span></a><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#gpus.GPU" title="gpus.GPU"><span class="pre">GPU</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/gpus.html#get_all_gpus"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#gpus.get_all_gpus" title="Link to this definition"></a></dt>
+<dd><p>Returns all available GPUs.</p>
+<p>Retorna todas as GPUs disponíveis.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>List of all GPUs</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="gpus.get_gpus_by_vram_min">
+<span class="sig-prename descclassname"><span class="pre">gpus.</span></span><span class="sig-name descname"><span class="pre">get_gpus_by_vram_min</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">min_vram_gb</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.List" title="(in Python v3.14)"><span class="pre">List</span></a><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#gpus.GPU" title="gpus.GPU"><span class="pre">GPU</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/gpus.html#get_gpus_by_vram_min"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#gpus.get_gpus_by_vram_min" title="Link to this definition"></a></dt>
+<dd><p>Returns GPUs with at least the specified VRAM.</p>
+<p>Retorna GPUs com pelo menos a VRAM especificada.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>min_vram_gb</strong> – Minimum VRAM in GB</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>List of GPUs with VRAM &gt;= min_vram_gb</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+<section id="module-calculator">
+<span id="calculator"></span><h3>calculator<a class="headerlink" href="#module-calculator" title="Link to this heading"></a></h3>
+<p>VRAM usage calculator for LLM inference.</p>
+<p>Implements the logic for estimating the memory required to run
+language models on specific GPUs.</p>
+<p>Calculadora de uso de VRAM para inferência de LLMs.
+Implementa a lógica de estimativa de memória necessária para rodar
+modelos de linguagem em GPUs específicas.</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="calculator.Quantization">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">calculator.</span></span><span class="sig-name descname"><span class="pre">Quantization</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">values</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/calculator.html#Quantization"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#calculator.Quantization" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/enum.html#enum.Enum" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Enum</span></code></a></p>
+<p>Supported precision/quantization types for inference.</p>
+<p>Tipos de precisão/quantização suportados para inferência.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="calculator.Quantization.FP32">
+<span class="sig-name descname"><span class="pre">FP32</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'fp32'</span></span><a class="headerlink" href="#calculator.Quantization.FP32" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="calculator.Quantization.FP16">
+<span class="sig-name descname"><span class="pre">FP16</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'fp16'</span></span><a class="headerlink" href="#calculator.Quantization.FP16" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="calculator.Quantization.INT8">
+<span class="sig-name descname"><span class="pre">INT8</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'int8'</span></span><a class="headerlink" href="#calculator.Quantization.INT8" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="calculator.Quantization.INT4">
+<span class="sig-name descname"><span class="pre">INT4</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'int4'</span></span><a class="headerlink" href="#calculator.Quantization.INT4" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="calculator.Quantization.bytes_per_param">
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">bytes_per_param</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><span class="pre">float</span></a></span><a class="headerlink" href="#calculator.Quantization.bytes_per_param" title="Link to this definition"></a></dt>
+<dd><p>Returns bytes per parameter for this precision.</p>
+<p>Retorna bytes por parâmetro para esta precisão.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="calculator.Quantization.kv_cache_multiplier">
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">kv_cache_multiplier</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><span class="pre">float</span></a></span><a class="headerlink" href="#calculator.Quantization.kv_cache_multiplier" title="Link to this definition"></a></dt>
+<dd><p>KV cache multiplier based on precision.</p>
+<p>Multiplicador para KV cache baseado na precisão.</p>
+<p>Note: KV cache usually remains in FP16 even with quantized weights,
+but some frameworks support quantized KV cache with INT8/INT4.</p>
+<p>Nota: KV cache geralmente permanece em FP16 mesmo com pesos quantizados,
+mas com INT8/INT4 alguns frameworks suportam KV cache quantizado.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="calculator.Status">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">calculator.</span></span><span class="sig-name descname"><span class="pre">Status</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">values</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/calculator.html#Status"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#calculator.Status" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/enum.html#enum.Enum" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Enum</span></code></a></p>
+<p>Inference feasibility status.</p>
+<p>Status de viabilidade da inferência.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="calculator.Status.RUNS">
+<span class="sig-name descname"><span class="pre">RUNS</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'RUNS'</span></span><a class="headerlink" href="#calculator.Status.RUNS" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="calculator.Status.NOT_RUNS">
+<span class="sig-name descname"><span class="pre">NOT_RUNS</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">&quot;DOESN'T</span> <span class="pre">RUN&quot;</span></span><a class="headerlink" href="#calculator.Status.NOT_RUNS" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="calculator.InferenceResult">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">calculator.</span></span><span class="sig-name descname"><span class="pre">InferenceResult</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">model_params_billion</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">gpu_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">gpu_vram_gb</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">required_vram_gb</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><span class="pre">float</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">status</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#calculator.Status" title="calculator.Status"><span class="pre">Status</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">vram_free_percent</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><span class="pre">float</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">quantization</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#calculator.Quantization" title="calculator.Quantization"><span class="pre">Quantization</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">warning</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/calculator.html#InferenceResult"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#calculator.InferenceResult" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>Feasibility analysis result for a model × GPU pair.</p>
+<p>Resultado de análise de viabilidade para um par modelo × GPU.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="calculator.InferenceResult.model_name">
+<span class="sig-name descname"><span class="pre">model_name</span></span><a class="headerlink" href="#calculator.InferenceResult.model_name" title="Link to this definition"></a></dt>
+<dd><p>Name of the LLM model</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)">str</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="calculator.InferenceResult.model_params_billion">
+<span class="sig-name descname"><span class="pre">model_params_billion</span></span><a class="headerlink" href="#calculator.InferenceResult.model_params_billion" title="Link to this definition"></a></dt>
+<dd><p>Model size in billions of parameters</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)">int</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="calculator.InferenceResult.gpu_name">
+<span class="sig-name descname"><span class="pre">gpu_name</span></span><a class="headerlink" href="#calculator.InferenceResult.gpu_name" title="Link to this definition"></a></dt>
+<dd><p>Name of the GPU</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)">str</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="calculator.InferenceResult.gpu_vram_gb">
+<span class="sig-name descname"><span class="pre">gpu_vram_gb</span></span><a class="headerlink" href="#calculator.InferenceResult.gpu_vram_gb" title="Link to this definition"></a></dt>
+<dd><p>GPU VRAM capacity in GB</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)">int</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="calculator.InferenceResult.required_vram_gb">
+<span class="sig-name descname"><span class="pre">required_vram_gb</span></span><a class="headerlink" href="#calculator.InferenceResult.required_vram_gb" title="Link to this definition"></a></dt>
+<dd><p>VRAM required for inference</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)">float</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="calculator.InferenceResult.status">
+<span class="sig-name descname"><span class="pre">status</span></span><a class="headerlink" href="#calculator.InferenceResult.status" title="Link to this definition"></a></dt>
+<dd><p>Feasibility status (RUNS or DOESN’T RUN)</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="#calculator.Status" title="calculator.Status">calculator.Status</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="calculator.InferenceResult.vram_free_percent">
+<span class="sig-name descname"><span class="pre">vram_free_percent</span></span><a class="headerlink" href="#calculator.InferenceResult.vram_free_percent" title="Link to this definition"></a></dt>
+<dd><p>Percentage of VRAM remaining</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)">float</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="calculator.InferenceResult.quantization">
+<span class="sig-name descname"><span class="pre">quantization</span></span><a class="headerlink" href="#calculator.InferenceResult.quantization" title="Link to this definition"></a></dt>
+<dd><p>Quantization type used</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="#calculator.Quantization" title="calculator.Quantization">calculator.Quantization</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="calculator.InferenceResult.warning">
+<span class="sig-name descname"><span class="pre">warning</span></span><a class="headerlink" href="#calculator.InferenceResult.warning" title="Link to this definition"></a></dt>
+<dd><p>Optional warning message</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)">str</a> | None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="id10">
+<span class="sig-name descname"><span class="pre">model_name</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span><a class="headerlink" href="#id10" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="id11">
+<span class="sig-name descname"><span class="pre">model_params_billion</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a></span><a class="headerlink" href="#id11" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="id12">
+<span class="sig-name descname"><span class="pre">gpu_name</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span><a class="headerlink" href="#id12" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="id13">
+<span class="sig-name descname"><span class="pre">gpu_vram_gb</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a></span><a class="headerlink" href="#id13" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="id14">
+<span class="sig-name descname"><span class="pre">required_vram_gb</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><span class="pre">float</span></a></span><a class="headerlink" href="#id14" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="id15">
+<span class="sig-name descname"><span class="pre">status</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="#calculator.Status" title="calculator.Status"><span class="pre">Status</span></a></span><a class="headerlink" href="#id15" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="id16">
+<span class="sig-name descname"><span class="pre">vram_free_percent</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><span class="pre">float</span></a></span><a class="headerlink" href="#id16" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="id17">
+<span class="sig-name descname"><span class="pre">quantization</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="#calculator.Quantization" title="calculator.Quantization"><span class="pre">Quantization</span></a></span><a class="headerlink" href="#id17" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="id18">
+<span class="sig-name descname"><span class="pre">warning</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></span><a class="headerlink" href="#id18" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="calculator.InferenceResult.to_dict">
+<span class="sig-name descname"><span class="pre">to_dict</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><span class="pre">dict</span></a></span></span><a class="reference internal" href="_modules/calculator.html#InferenceResult.to_dict"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#calculator.InferenceResult.to_dict" title="Link to this definition"></a></dt>
+<dd><p>Converts to serializable dictionary.</p>
+<p>Converte para dicionário serializável.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="calculator.InferenceResult.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">model_params_billion</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">gpu_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">gpu_vram_gb</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">required_vram_gb</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><span class="pre">float</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">status</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#calculator.Status" title="calculator.Status"><span class="pre">Status</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">vram_free_percent</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><span class="pre">float</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">quantization</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#calculator.Quantization" title="calculator.Quantization"><span class="pre">Quantization</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">warning</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span></span><a class="headerlink" href="#calculator.InferenceResult.__init__" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="calculator.CalculationBreakdown">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">calculator.</span></span><span class="sig-name descname"><span class="pre">CalculationBreakdown</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">params_memory_gb</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><span class="pre">float</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">overhead_gb</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><span class="pre">float</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">model_with_overhead_gb</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><span class="pre">float</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">kv_cache_gb</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><span class="pre">float</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">total_vram_gb</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><span class="pre">float</span></a></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/calculator.html#CalculationBreakdown"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#calculator.CalculationBreakdown" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>Detailed VRAM calculation breakdown.</p>
+<p>Breakdown detalhado do cálculo de VRAM.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="calculator.CalculationBreakdown.params_memory_gb">
+<span class="sig-name descname"><span class="pre">params_memory_gb</span></span><a class="headerlink" href="#calculator.CalculationBreakdown.params_memory_gb" title="Link to this definition"></a></dt>
+<dd><p>Memory for model parameters in GB</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)">float</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="calculator.CalculationBreakdown.overhead_gb">
+<span class="sig-name descname"><span class="pre">overhead_gb</span></span><a class="headerlink" href="#calculator.CalculationBreakdown.overhead_gb" title="Link to this definition"></a></dt>
+<dd><p>Memory overhead in GB</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)">float</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="calculator.CalculationBreakdown.model_with_overhead_gb">
+<span class="sig-name descname"><span class="pre">model_with_overhead_gb</span></span><a class="headerlink" href="#calculator.CalculationBreakdown.model_with_overhead_gb" title="Link to this definition"></a></dt>
+<dd><p>Parameters + overhead in GB</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)">float</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="calculator.CalculationBreakdown.kv_cache_gb">
+<span class="sig-name descname"><span class="pre">kv_cache_gb</span></span><a class="headerlink" href="#calculator.CalculationBreakdown.kv_cache_gb" title="Link to this definition"></a></dt>
+<dd><p>KV cache memory in GB</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)">float</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="calculator.CalculationBreakdown.total_vram_gb">
+<span class="sig-name descname"><span class="pre">total_vram_gb</span></span><a class="headerlink" href="#calculator.CalculationBreakdown.total_vram_gb" title="Link to this definition"></a></dt>
+<dd><p>Total VRAM required in GB</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)">float</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="id19">
+<span class="sig-name descname"><span class="pre">params_memory_gb</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><span class="pre">float</span></a></span><a class="headerlink" href="#id19" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="id20">
+<span class="sig-name descname"><span class="pre">overhead_gb</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><span class="pre">float</span></a></span><a class="headerlink" href="#id20" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="id21">
+<span class="sig-name descname"><span class="pre">model_with_overhead_gb</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><span class="pre">float</span></a></span><a class="headerlink" href="#id21" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="id22">
+<span class="sig-name descname"><span class="pre">kv_cache_gb</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><span class="pre">float</span></a></span><a class="headerlink" href="#id22" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="id23">
+<span class="sig-name descname"><span class="pre">total_vram_gb</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><span class="pre">float</span></a></span><a class="headerlink" href="#id23" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="calculator.CalculationBreakdown.to_dict">
+<span class="sig-name descname"><span class="pre">to_dict</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><span class="pre">dict</span></a></span></span><a class="reference internal" href="_modules/calculator.html#CalculationBreakdown.to_dict"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#calculator.CalculationBreakdown.to_dict" title="Link to this definition"></a></dt>
+<dd><p>Converts to serializable dictionary.</p>
+<p>Converte para dicionário serializável.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="calculator.CalculationBreakdown.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">params_memory_gb</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><span class="pre">float</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">overhead_gb</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><span class="pre">float</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">model_with_overhead_gb</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><span class="pre">float</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">kv_cache_gb</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><span class="pre">float</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">total_vram_gb</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><span class="pre">float</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span></span><a class="headerlink" href="#calculator.CalculationBreakdown.__init__" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="calculator.VRAMCalculator">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">calculator.</span></span><span class="sig-name descname"><span class="pre">VRAMCalculator</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">quantization</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#calculator.Quantization" title="calculator.Quantization"><span class="pre">Quantization</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">Quantization.FP16</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">overhead_factor</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><span class="pre">float</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0.3</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/calculator.html#VRAMCalculator"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#calculator.VRAMCalculator" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>VRAM calculator for LLM inference.</p>
+<p>Calculadora de VRAM para inferência de LLMs.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="calculator.VRAMCalculator.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">quantization</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#calculator.Quantization" title="calculator.Quantization"><span class="pre">Quantization</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">Quantization.FP16</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">overhead_factor</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><span class="pre">float</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0.3</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/calculator.html#VRAMCalculator.__init__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#calculator.VRAMCalculator.__init__" title="Link to this definition"></a></dt>
+<dd><p>Initialize the calculator.</p>
+<p>Inicializa a calculadora.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>quantization</strong> – Quantization type (default: FP16)</p></li>
+<li><p><strong>overhead_factor</strong> – Overhead factor (0.30 = 30%)</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="calculator.VRAMCalculator.calculate_params_memory">
+<span class="sig-name descname"><span class="pre">calculate_params_memory</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">params_billion</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><span class="pre">float</span></a></span></span><a class="reference internal" href="_modules/calculator.html#VRAMCalculator.calculate_params_memory"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#calculator.VRAMCalculator.calculate_params_memory" title="Link to this definition"></a></dt>
+<dd><p>Calculate base memory for model parameters.</p>
+<p>Calcula memória base dos parâmetros do modelo.</p>
+<p>Formula: params_memory_gb = params_billion * BYTES_PER_PARAM / 1024
+Fórmula: params_memory_gb = params_billion × BYTES_PER_PARAM / 1024</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>params_billion</strong> – Model size in billions of parameters</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Memory in GB</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="calculator.VRAMCalculator.calculate_overhead">
+<span class="sig-name descname"><span class="pre">calculate_overhead</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">params_memory_gb</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><span class="pre">float</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><span class="pre">float</span></a></span></span><a class="reference internal" href="_modules/calculator.html#VRAMCalculator.calculate_overhead"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#calculator.VRAMCalculator.calculate_overhead" title="Link to this definition"></a></dt>
+<dd><p>Calculate memory overhead (runtime, activations, etc.).</p>
+<p>Calcula overhead de memória (runtime, activations, etc.).</p>
+<p>Formula: overhead = params_memory * overhead_factor
+Fórmula: overhead = params_memory × overhead_factor</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>params_memory_gb</strong> – Base parameter memory in GB</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Overhead in GB</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="calculator.VRAMCalculator.calculate_kv_cache">
+<span class="sig-name descname"><span class="pre">calculate_kv_cache</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">kv_cache_mb_per_token</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><span class="pre">float</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">context_tokens</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><span class="pre">float</span></a></span></span><a class="reference internal" href="_modules/calculator.html#VRAMCalculator.calculate_kv_cache"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#calculator.VRAMCalculator.calculate_kv_cache" title="Link to this definition"></a></dt>
+<dd><p>Calculate memory required for KV cache.</p>
+<p>Calcula memória necessária para KV cache.</p>
+<p>Formula: kv_cache_gb = (kv_cache_mb_per_token * context_tokens * multiplier) / 1024
+Fórmula: kv_cache_gb = (kv_cache_mb_per_token × context_tokens × multiplier) / 1024</p>
+<p>The base KV cache is defined for FP16. For other precisions, we apply
+a multiplier: FP32 uses 2x, INT8/INT4 may use less depending on the framework.</p>
+<p>O KV cache base é definido para FP16. Para outras precisões, aplicamos
+um multiplicador: FP32 usa 2x, INT8/INT4 podem usar menos dependendo do framework.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>kv_cache_mb_per_token</strong> – MB per token for the model (FP16 baseline)</p></li>
+<li><p><strong>context_tokens</strong> – Context size in tokens</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>KV cache in GB</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="calculator.VRAMCalculator.calculate_total_vram">
+<span class="sig-name descname"><span class="pre">calculate_total_vram</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#models.LLMModel" title="models.LLMModel"><span class="pre">LLMModel</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">context_tokens</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#calculator.CalculationBreakdown" title="calculator.CalculationBreakdown"><span class="pre">CalculationBreakdown</span></a></span></span><a class="reference internal" href="_modules/calculator.html#VRAMCalculator.calculate_total_vram"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#calculator.VRAMCalculator.calculate_total_vram" title="Link to this definition"></a></dt>
+<dd><p>Calculate total VRAM required for a model with given context.</p>
+<p>Calcula VRAM total necessária para um modelo com contexto dado.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>model</strong> – LLM model to evaluate</p></li>
+<li><p><strong>context_tokens</strong> – Context size in tokens</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>CalculationBreakdown with calculation details</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="calculator.VRAMCalculator.evaluate_pair">
+<span class="sig-name descname"><span class="pre">evaluate_pair</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#models.LLMModel" title="models.LLMModel"><span class="pre">LLMModel</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">gpu</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#gpus.GPU" title="gpus.GPU"><span class="pre">GPU</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">context_tokens</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">quantization</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#calculator.Quantization" title="calculator.Quantization"><span class="pre">Quantization</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#calculator.InferenceResult" title="calculator.InferenceResult"><span class="pre">InferenceResult</span></a></span></span><a class="reference internal" href="_modules/calculator.html#VRAMCalculator.evaluate_pair"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#calculator.VRAMCalculator.evaluate_pair" title="Link to this definition"></a></dt>
+<dd><p>Evaluate if a model × GPU pair is viable for the given context.</p>
+<p>Avalia se um par modelo × GPU é viável para o contexto dado.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>model</strong> – LLM model to evaluate</p></li>
+<li><p><strong>gpu</strong> – GPU to evaluate</p></li>
+<li><p><strong>context_tokens</strong> – Context size in tokens</p></li>
+<li><p><strong>quantization</strong> – Override quantization (uses instance default if None)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>InferenceResult with status and details</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="calculator.VRAMCalculator.calculate_all_combinations">
+<span class="sig-name descname"><span class="pre">calculate_all_combinations</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">context_tokens</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">models</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.List" title="(in Python v3.14)"><span class="pre">List</span></a><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#models.LLMModel" title="models.LLMModel"><span class="pre">LLMModel</span></a><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">gpus</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.List" title="(in Python v3.14)"><span class="pre">List</span></a><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#gpus.GPU" title="gpus.GPU"><span class="pre">GPU</span></a><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.List" title="(in Python v3.14)"><span class="pre">List</span></a><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#calculator.InferenceResult" title="calculator.InferenceResult"><span class="pre">InferenceResult</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/calculator.html#VRAMCalculator.calculate_all_combinations"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#calculator.VRAMCalculator.calculate_all_combinations" title="Link to this definition"></a></dt>
+<dd><p>Calculate feasibility for all model × GPU combinations.</p>
+<p>Calcula viabilidade para todas as combinações modelo × GPU.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>context_tokens</strong> – Context size in tokens</p></li>
+<li><p><strong>models</strong> – List of models (uses all if None)</p></li>
+<li><p><strong>gpus</strong> – List of GPUs (uses all if None)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>List of InferenceResult for all combinations</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="calculator.calculate_inference">
+<span class="sig-prename descclassname"><span class="pre">calculator.</span></span><span class="sig-name descname"><span class="pre">calculate_inference</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">context_tokens</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><span class="pre">dict</span></a></span></span><a class="reference internal" href="_modules/calculator.html#calculate_inference"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#calculator.calculate_inference" title="Link to this definition"></a></dt>
+<dd><p>Main calculation function (simplified interface).</p>
+<p>Função principal de cálculo (interface simplificada).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>context_tokens</strong> – Context size in tokens</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Dictionary with structured results</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+<section id="module-main">
+<span id="main"></span><h3>main<a class="headerlink" href="#module-main" title="Link to this heading"></a></h3>
+<p>CLI for LLM local inference viability calculator.</p>
+<p>Allows quickly discovering which models run on which GPU
+for a given context size.</p>
+<p>CLI para calculadora de viabilidade de inferência local de LLMs.
+Permite descobrir rapidamente quais modelos rodam em qual GPU
+para um determinado tamanho de contexto.</p>
+<dl class="py function">
+<dt class="sig sig-object py" id="main.print_table">
+<span class="sig-prename descclassname"><span class="pre">main.</span></span><span class="sig-name descname"><span class="pre">print_table</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">results</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.List" title="(in Python v3.14)"><span class="pre">List</span></a><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#calculator.InferenceResult" title="calculator.InferenceResult"><span class="pre">InferenceResult</span></a><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">group_by_gpu</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><span class="pre">bool</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">show_only_runs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><span class="pre">bool</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/main.html#print_table"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#main.print_table" title="Link to this definition"></a></dt>
+<dd><p>Prints results in ASCII table format.</p>
+<p>Imprime resultados em formato de tabela ASCII.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>results</strong> – List of results / Lista de resultados</p></li>
+<li><p><strong>group_by_gpu</strong> – Group by GPU instead of model / Agrupa por GPU</p></li>
+<li><p><strong>show_only_runs</strong> – Show only running combinations / Apenas combinações que rodam</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="main.print_summary_by_model">
+<span class="sig-prename descclassname"><span class="pre">main.</span></span><span class="sig-name descname"><span class="pre">print_summary_by_model</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">results</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.List" title="(in Python v3.14)"><span class="pre">List</span></a><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#calculator.InferenceResult" title="calculator.InferenceResult"><span class="pre">InferenceResult</span></a><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/main.html#print_summary_by_model"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#main.print_summary_by_model" title="Link to this definition"></a></dt>
+<dd><p>Prints summary grouped by model size.</p>
+<p>Imprime resumo agrupado por tamanho de modelo.</p>
+<p>Shows for each model which GPUs support it.
+Mostra para cada modelo quais GPUs suportam.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="main.print_summary_by_gpu">
+<span class="sig-prename descclassname"><span class="pre">main.</span></span><span class="sig-name descname"><span class="pre">print_summary_by_gpu</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">results</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.List" title="(in Python v3.14)"><span class="pre">List</span></a><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#calculator.InferenceResult" title="calculator.InferenceResult"><span class="pre">InferenceResult</span></a><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/main.html#print_summary_by_gpu"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#main.print_summary_by_gpu" title="Link to this definition"></a></dt>
+<dd><p>Prints summary grouped by GPU.</p>
+<p>Imprime resumo agrupado por GPU.</p>
+<p>Shows for each GPU which models it supports.
+Mostra para cada GPU quais modelos suporta.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="main.export_csv">
+<span class="sig-prename descclassname"><span class="pre">main.</span></span><span class="sig-name descname"><span class="pre">export_csv</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">results</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.List" title="(in Python v3.14)"><span class="pre">List</span></a><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#calculator.InferenceResult" title="calculator.InferenceResult"><span class="pre">InferenceResult</span></a><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">filepath</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/main.html#export_csv"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#main.export_csv" title="Link to this definition"></a></dt>
+<dd><p>Exports results to CSV.</p>
+<p>Exporta resultados para CSV.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="main.export_json">
+<span class="sig-prename descclassname"><span class="pre">main.</span></span><span class="sig-name descname"><span class="pre">export_json</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">results</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.List" title="(in Python v3.14)"><span class="pre">List</span></a><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#calculator.InferenceResult" title="calculator.InferenceResult"><span class="pre">InferenceResult</span></a><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">filepath</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">context_tokens</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">quantization</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#calculator.Quantization" title="calculator.Quantization"><span class="pre">Quantization</span></a></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/main.html#export_json"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#main.export_json" title="Link to this definition"></a></dt>
+<dd><p>Exports results to JSON.</p>
+<p>Exporta resultados para JSON.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="main.parse_args">
+<span class="sig-prename descclassname"><span class="pre">main.</span></span><span class="sig-name descname"><span class="pre">parse_args</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/main.html#parse_args"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#main.parse_args" title="Link to this definition"></a></dt>
+<dd><p>Parse CLI arguments.</p>
+<p>Parse argumentos da CLI.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="main.main">
+<span class="sig-prename descclassname"><span class="pre">main.</span></span><span class="sig-name descname"><span class="pre">main</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/main.html#main"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#main.main" title="Link to this definition"></a></dt>
+<dd><p>Main CLI function.</p>
+<p>Função principal da CLI.</p>
+</dd></dl>
+
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="usage.html" class="btn btn-neutral float-left" title="User Guide" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="examples.html" class="btn btn-neutral float-right" title="Examples" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Local Inference Calculator.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
