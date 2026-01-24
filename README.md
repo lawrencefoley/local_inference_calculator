@@ -120,6 +120,5 @@ Ou usando o Sphinx diretamente:
 - [ ] Multi-GPU support
 - [ ] Suporte a Multi-GPU
 - [ ] CPU offload
-- [ ] CPU offload
 - [ ] Support for specific model formats (GGUF, etc.)
 - [ ] Suporte a formatos de modelo específicos (GGUF, etc.)
