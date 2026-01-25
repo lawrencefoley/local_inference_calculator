@@ -1,20 +1,44 @@
-# Minimal makefile for Sphinx documentation
-#
+# Makefile principal para documentação multilíngue
+# Main makefile for multilingual documentation
 
-# You can set these variables from the command line, and also
-# from the environment for the first two.
+# Idiomas disponíveis / Available languages
+LANGUAGES = en pt_BR
+
+# Idioma padrão / Default language
+LANG ?= en
+
+# Comando Sphinx
+SPHINXBUILD   ?= sphinx-build
 SPHINXOPTS    ?=
-SPHINXBUILD   ?= ../venv/bin/sphinx-build
-SOURCEDIR     = .
-BUILDDIR      = _build
 
-# Put it first so that "make" without argument is like "make help".
+.PHONY: help all clean html $(LANGUAGES)
+
 help:
-	@$(SPHINXBUILD) -M help "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)
+	@echo "Uso / Usage:"
+	@echo "  make html LANG=en        - Build English documentation"
+	@echo "  make html LANG=pt_BR     - Build Portuguese documentation"
+	@echo "  make all                 - Build all languages"
+	@echo "  make clean               - Clean build directories"
+	@echo ""
+	@echo "Usage / Usage:"
+	@echo "  make html LANG=en        - Build English documentation"
+	@echo "  make html LANG=pt_BR     - Build Portuguese documentation"
+	@echo "  make all                 - Build all languages"
+	@echo "  make clean               - Clean build directories"
 
-.PHONY: help Makefile
+all: $(LANGUAGES)
 
-# Catch-all target: route all unknown targets to Sphinx using the new
-# "make mode" option.  $(O) is meant as a shortcut for $(SPHINXOPTS).
-%: Makefile
-	@$(SPHINXBUILD) -M $@ "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)
+$(LANGUAGES):
+	@echo "Building $@ documentation / Construindo documentação $@"
+	@cd $@ && $(MAKE) html
+
+clean:
+	@echo "Cleaning build directories / Limpando diretórios de build"
+	@rm -rf _build
+
+html:
+	@cd $(LANG) && $(MAKE) html
+	@echo ""
+	@echo "Build complete! / Build completo!"
+	@echo "Open the documentation in your browser:"
+	@echo "  file://$(CURDIR)/_build/$(LANG)/html/index.html"

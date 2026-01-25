@@ -173,3 +173,17 @@ Example: 70B model in FP16 (2 bytes/param):
 .. code-block:: python
 
    total_vram_gb = model_with_overhead_gb + kv_cache_gb
+
+
+Technical Notes
+---------------
+
+The calculations assume PyTorch-style memory allocation (HF Transformers, vLLM).
+Different backends may have varying memory behavior:
+
+* **TensorRT-LLM**: Custom allocators, ~10-20% less memory
+* **llama.cpp (GGUF)**: Memory-mapped files, ~20-30% less memory
+* **EXL2**: Optimized allocation, minimal overhead
+
+For detailed explanations of technical terms used in VRAM calculations,
+see :doc:`glossary`.
