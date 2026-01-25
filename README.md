@@ -231,21 +231,6 @@ local_inference_calculator/
 └── README.md
 ```
 
-## Documentation
-
-To generate HTML documentation:
-
-```bash
-cd docs
-make html
-```
-
-Or using Sphinx directly:
-
-```bash
-./venv/bin/sphinx-build -b html docs docs/_build/html
-```
-
 ## Implemented Features
 
 - [x] Support for FP32, FP16, INT8, INT4 quantization
