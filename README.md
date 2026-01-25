@@ -298,3 +298,83 @@ The built HTML will be in `docs/_build/{lang}/html/index.html`.
 - **Glossary** - Technical terms explained (Memory Allocator, LoRA, Speculative Decoding, KV Cache, Context Scaling, etc.)
 - **API Reference** - Python API documentation
 - **Examples** - Practical use cases and scripts
+
+## Contributing
+
+Contributions are welcome! Here are some ways you can help:
+
+### Adding New Models or GPUs
+
+To add a new model, edit `models.py` and add an entry to the `MODELS` list:
+
+```python
+{
+    "name": "ModelName",
+    "params_billion": 13,
+    "architecture": "arch_name",
+    "kv_cache_mb_per_token": 0.128,  # Adjust based on architecture
+},
+```
+
+To add a new GPU, edit `gpus.py` and add to the `GPUS` list:
+
+```python
+{
+    "name": "GPU Name",
+    "vram_gb": 24,
+    "type": "consumer",  # or "datacenter"
+},
+```
+
+### Documentation Updates
+
+The project maintains bilingual documentation (English and Portuguese):
+
+- English docs: `docs/en/`
+- Portuguese docs: `docs/pt_BR/`
+
+When updating documentation, please update both language versions.
+
+### Development Setup
+
+```bash
+# Clone the repository
+git clone <your-fork-url>
+cd local_inference_calculator
+
+# Create a virtual environment (recommended)
+python -m venv venv
+source venv/bin/activate  # Windows: venv\Scripts\activate
+
+# Install documentation dependencies (for building docs)
+pip install -r docs/requirements.txt
+
+# Run tests or make your changes
+python main.py --list-models
+
+# Build documentation to verify changes
+cd docs && make html LANG=en
+```
+
+### Submitting Changes
+
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+### Code Style
+
+- Follow PEP 8 for Python code
+- Add docstrings to new functions and classes
+- Update relevant documentation when adding features
+- Keep the CLI output consistent with existing patterns
+
+### Pull Requests
+
+To contribute, simply open a pull request with your changes. All contributions are welcome!
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
