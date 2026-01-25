@@ -61,7 +61,7 @@ Available options:
    -h, --help            Show help message and exit
    -c, --context CONTEXT Context size in tokens (default: 4096)
    --list-models         List all available models
-   -m SIZE, --model SIZE  Model size in billions (e.g., 7, 13, 70)
+   -m SIZE, --model SIZE  Model size in billions (e.g., 0.6, 7, 13, 70)
    --gpu-type TYPE       GPU type: consumer, datacenter, all (default: all)
    --only-runs           Show only running combinations
    --group-gpu           Group results by GPU instead of model

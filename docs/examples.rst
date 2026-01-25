@@ -58,7 +58,21 @@ Output:
 
 ---
 
-Example 3: Can I Run a 70B Model with INT4 on RTX 4090?
+Example 3: Small Model with Fractional Size (0.6B)
+--------------------------------------------------
+
+Small models like Phi-3 Mini (3.8B) or Qwen2-0.5B use fractional sizes:
+
+.. code-block:: bash
+
+   python main.py --model 0.6 --context 8192
+   python main.py -m 3.8 -c 4096 -q int4
+
+These models are designed for edge devices and can run on GPUs with as little as 4-6 GB VRAM.
+
+---
+
+Example 4: Can I Run a 70B Model with INT4 on RTX 4090?
 ---------------------------------------------------------
 
 .. code-block:: bash
@@ -71,7 +85,7 @@ quantization or a larger GPU for the full context.
 
 ---
 
-Example 4: Which GPU to Buy for a 34B Model?
+Example 5: Which GPU to Buy for a 34B Model?
 ---------------------------------------------
 
 .. code-block:: bash
@@ -83,7 +97,7 @@ free VRAM percentage.
 
 ---
 
-Example 5: Compare All Quantizations
+Example 6: Compare All Quantizations
 ---------------------------------------
 
 .. code-block:: bash
@@ -97,7 +111,7 @@ This clearly shows how INT4 allows much larger models on the same GPU.
 
 ---
 
-Example 6: Check Google Colab Compatibility
+Example 7: Check Google Colab Compatibility
 ---------------------------------------------
 
 .. code-block:: bash
@@ -108,7 +122,7 @@ This quickly shows which Colab GPU tier can run your desired model.
 
 ---
 
-Example 7: Export Results
+Example 8: Export Results
 -------------------------
 
 .. code-block:: bash

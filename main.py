@@ -59,6 +59,11 @@ class Colors:
         return f"{Colors.YELLOW}{text}{Colors.RESET}"
 
     @staticmethod
+    def warn(text: str) -> str:
+        """Yellow text for warnings (alias)."""
+        return f"{Colors.YELLOW}{text}{Colors.RESET}"
+
+    @staticmethod
     def error(text: str) -> str:
         """Red text for errors."""
         return f"{Colors.RED}{text}{Colors.RESET}"
@@ -364,6 +369,43 @@ def print_model_vram_breakdown(model: LLMModel, context_tokens: int, quantizatio
     print("=" * 70)
 
 
+def estimate_kv_cache(params_billion: int) -> float:
+    """Estimate KV cache per token based on model size.
+
+    Estima KV cache por token baseado no tamanho do modelo.
+
+    Uses a conservative formula based on decoder-only architecture.
+    Usa uma fórmula conservadora baseada em arquitetura decoder-only.
+
+    Args:
+        params_billion: Model size in billions of parameters
+
+    Returns:
+        Estimated KV cache in MB per token (FP16)
+    """
+    # Approximate KV cache scaling based on model size
+    # Escalonamento aproximado de KV cache baseado no tamanho do modelo
+    # Formula: kv_cache ≈ 0.6 * sqrt(params_billion / 7)
+    # This is a rough approximation for decoder-only models
+    if params_billion <= 1:
+        return 0.05
+    elif params_billion <= 3:
+        return 0.15
+    elif params_billion <= 7:
+        return 0.4
+    elif params_billion <= 13:
+        return 0.6
+    elif params_billion <= 30:
+        return 1.0
+    elif params_billion <= 70:
+        return 2.0
+    elif params_billion <= 100:
+        return 3.0
+    else:
+        # For very large models, KV cache grows roughly with sqrt of params
+        return 3.0 * (params_billion / 100) ** 0.5
+
+
 def parse_args():
     """Parse CLI arguments.
 
@@ -384,6 +426,11 @@ Examples / Exemplos:
   python main.py --model 7 --context 8192
   python main.py -m 70 -c 16384 -q int4
   python main.py -m 70 -c 8192 -q int4 --mode production
+
+Generic model / Modelo genérico:
+  python main.py --params-b 405 --context 8192 --quantization int4
+  python main.py --params-b 405 --kv-cache 15.0 --context 8192
+  python main.py --params-b 405 --model-name "Llama 3.1 405B" -c 8192
 
 Available precisions / Precisões disponíveis:
   fp32 - Float32 (4 bytes/param) - Original precision, highest quality
@@ -413,9 +460,9 @@ Calculation modes / Modos de cálculo:
 
     parser.add_argument(
         "-m", "--model",
-        type=int,
+        type=float,
         metavar="SIZE",
-        help="Model size in billions of parameters (e.g., 7, 13, 70) / "
+        help="Model size in billions of parameters (e.g., 0.6, 7, 13, 70) / "
              "Tamanho do modelo em bilhões de parâmetros",
     )
 
@@ -473,6 +520,31 @@ Calculation modes / Modos de cálculo:
              "(theoretical=ideal minimum, conservative=default, production=real-world serving)",
     )
 
+    # Generic model parameters / Parâmetros de modelo genérico
+    parser.add_argument(
+        "--params-b",
+        type=int,
+        metavar="BILLIONS",
+        help="Generic model: parameters in billions (e.g., 8, 70, 405) / "
+             "Modelo genérico: parâmetros em bilhões (ex: 8, 70, 405)",
+    )
+
+    parser.add_argument(
+        "--kv-cache",
+        type=float,
+        metavar="MB_PER_TOKEN",
+        help="Generic model: KV cache in MB per token FP16 (e.g., 0.6, 1.0, 4.27) / "
+             "Modelo genérico: KV cache em MB por token FP16 (ex: 0.6, 1.0, 4.27)",
+    )
+
+    parser.add_argument(
+        "--model-name",
+        type=str,
+        metavar="NAME",
+        help="Generic model: custom name for display / "
+             "Modelo genérico: nome personalizado para exibição",
+    )
+
     return parser.parse_args()
 
 
@@ -514,17 +586,49 @@ def main():
     }
     calculation_mode = mode_map[args.mode]
 
-    # Handle --model (specific model)
-    # Lidar com --model (modelo específico)
-    if args.model:
+    # Handle --model (specific model) or --params-b (generic model)
+    # Lidar com --model (modelo específico) ou --params-b (modelo genérico)
+    model = None
+    use_generic = False
+
+    # Generic model takes precedence / Modelo genérico tem precedência
+    if args.params_b is not None:
+        # Create generic model / Criar modelo genérico
+        params_b = args.params_b
+        kv_cache = args.kv_cache if args.kv_cache else estimate_kv_cache(params_b)
+        model_name = args.model_name if args.model_name else f"Custom Model {params_b}B"
+
+        model = LLMModel(
+            name=model_name,
+            params_billion=params_b,
+            architecture="decoder-only",
+            precision_default="fp16",
+            kv_cache_mb_per_token=kv_cache,
+        )
+        use_generic = True
+
+    elif args.model:
         model = get_model_by_size(args.model)
         if not model:
-            available_sizes = [m.params_billion for m in get_all_models()]
-            print(f"\nError: Model size {args.model}B not found.", file=sys.stderr)
-            print(f"Available sizes: {available_sizes}")
-            print("Use --list-models to see all available models.")
-            sys.exit(1)
+            # Model not found in database - offer to use as generic
+            # Modelo não encontrado no banco - oferecer usar como genérico
+            print(f"\n{Colors.warn('Model size ' + str(args.model) + 'B not found in database.')}")
+            print(f"{Colors.dim('Using generic model with estimated KV cache.')}")
+            print(f"Use --params-b {args.model} --kv-cache <value> for custom KV cache.")
+            print(f"Or use --list-models to see all available models.\n")
 
+            # Create generic model as fallback / Criar modelo genérico como fallback
+            kv_cache = args.kv_cache if args.kv_cache else estimate_kv_cache(args.model)
+            model = LLMModel(
+                name=f"Generic Model {args.model}B",
+                params_billion=args.model,
+                architecture="decoder-only",
+                precision_default="fp16",
+                kv_cache_mb_per_token=kv_cache,
+            )
+            use_generic = True
+
+    if model:
         # Show VRAM breakdown for the specific model
         print_model_vram_breakdown(model, args.context, quantization, calculation_mode)
 

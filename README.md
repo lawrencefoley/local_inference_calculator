@@ -25,6 +25,7 @@ python main.py --list-models
 ```bash
 python main.py --model 7 --context 8192
 python main.py -m 70 -c 16384 -q int4
+python main.py -m 0.6 -c 8192      # Small models (0.6B, 1B, etc.)
 python main.py -m 70 -c 8192 -q int4 --mode production
 ```
 

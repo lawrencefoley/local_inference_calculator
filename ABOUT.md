@@ -20,7 +20,7 @@
   - Compare VRAM requirements across quantization levels
   - Estimate capacity for Google Colab environments
 
-  Supported Models: 7B to 180B parameter models including LLaMA, Mistral, Qwen, and more.
+  Supported Models: 0.5B to 180B parameter models including LLaMA, Mistral, Qwen, Phi, and more.
 
   Requirements: Python 3.10+ (no external dependencies)
 
