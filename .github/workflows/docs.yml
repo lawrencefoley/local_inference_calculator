@@ -1,4 +1,4 @@
-name: Deploy Sphinx Docs
+name: Deploy Sphinx Docs (Multilingual)
 
 on:
   push:
@@ -19,13 +19,138 @@ jobs:
         with:
           python-version: '3.11'
 
-      - run: |
-          pip install -r docs/requirements.txt || true
-          sphinx-build -b html docs docs/_build/html
+      - name: Install dependencies
+        run: pip install -r docs/requirements.txt
+
+      - name: Build English documentation
+        run: |
+          cd docs/en
+          sphinx-build -b html . ../_build/en
+
+      - name: Build Portuguese documentation
+        run: |
+          cd docs/pt_BR
+          sphinx-build -b html . ../_build/pt_BR
+
+      - name: Create language selector index
+        run: |
+          cat > docs/_build/index.html << 'EOF'
+          <!DOCTYPE html>
+          <html lang="en">
+          <head>
+              <meta charset="UTF-8">
+              <meta name="viewport" content="width=device-width, initial-scale=1.0">
+              <title>Local Inference Calculator - Documentation</title>
+              <style>
+                  * {
+                      margin: 0;
+                      padding: 0;
+                      box-sizing: border-box;
+                  }
+                  body {
+                      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, "Fira Sans", "Droid Sans", "Helvetica Neue", sans-serif;
+                      background: linear-gradient(135deg, #1e3a5f 0%, #2d5a87 100%);
+                      min-height: 100vh;
+                      display: flex;
+                      align-items: center;
+                      justify-content: center;
+                      padding: 20px;
+                  }
+                  .container {
+                      text-align: center;
+                      background: rgba(255, 255, 255, 0.95);
+                      padding: 60px 40px;
+                      border-radius: 16px;
+                      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+                      max-width: 500px;
+                  }
+                  h1 {
+                      color: #1e3a5f;
+                      margin-bottom: 10px;
+                      font-size: 28px;
+                  }
+                  .subtitle {
+                      color: #666;
+                      margin-bottom: 40px;
+                      font-size: 14px;
+                  }
+                  .lang-buttons {
+                      display: flex;
+                      gap: 20px;
+                      justify-content: center;
+                      flex-wrap: wrap;
+                  }
+                  .lang-btn {
+                      display: flex;
+                      flex-direction: column;
+                      align-items: center;
+                      padding: 30px 40px;
+                      background: white;
+                      border: 2px solid #e0e0e0;
+                      border-radius: 12px;
+                      text-decoration: none;
+                      color: #333;
+                      transition: all 0.3s ease;
+                      min-width: 160px;
+                  }
+                  .lang-btn:hover {
+                      transform: translateY(-5px);
+                      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+                      border-color: #2d5a87;
+                  }
+                  .lang-btn .flag {
+                      font-size: 48px;
+                      margin-bottom: 12px;
+                  }
+                  .lang-btn .name {
+                      font-size: 18px;
+                      font-weight: 600;
+                      color: #1e3a5f;
+                  }
+                  .lang-btn .native {
+                      font-size: 13px;
+                      color: #888;
+                      margin-top: 4px;
+                  }
+                  .footer {
+                      margin-top: 40px;
+                      color: #888;
+                      font-size: 12px;
+                  }
+                  @media (max-width: 500px) {
+                      .container {
+                          padding: 40px 20px;
+                      }
+                      .lang-buttons {
+                          flex-direction: column;
+                          align-items: center;
+                      }
+                  }
+              </style>
+          </head>
+          <body>
+              <div class="container">
+                  <h1>Local Inference Calculator</h1>
+                  <p class="subtitle">LLM VRAM Capacity Planning Tool</p>
+                  <div class="lang-buttons">
+                      <a href="en/" class="lang-btn">
+                          <span class="flag">🇬🇧</span>
+                          <span class="name">English</span>
+                      </a>
+                      <a href="pt_BR/" class="lang-btn">
+                          <span class="flag">🇧🇷</span>
+                          <span class="name">Português</span>
+                      </a>
+                  </div>
+                  <p class="footer">Choose your language / Escolha seu idioma</p>
+              </div>
+          </body>
+          </html>
+          EOF
 
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: docs/_build/html
+          path: docs/_build
 
   deploy:
     needs: build
