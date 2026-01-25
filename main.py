@@ -16,9 +16,67 @@ import json
 import sys
 from typing import List
 
-from models import LLMModel, get_all_models
+from models import LLMModel, get_all_models, get_model_by_size
 from gpus import GPU, get_all_gpus, get_consumer_gpus, get_datacenter_gpus
-from calculator import VRAMCalculator, Quantization, InferenceResult, Status
+from calculator import VRAMCalculator, Quantization, InferenceResult, Status, CalculationMode
+
+
+# Terminal colors for enhanced readability
+# Cores de terminal para melhor legibilidade
+class Colors:
+    """ANSI color codes for terminal output.
+
+    Códigos de cores ANSI para saída de terminal.
+    """
+    RESET = "\033[0m"
+    BOLD = "\033[1m"
+    DIM = "\033[2m"
+
+    # Foreground colors
+    BLACK = "\033[30m"
+    RED = "\033[31m"
+    GREEN = "\033[32m"
+    YELLOW = "\033[33m"
+    BLUE = "\033[34m"
+    MAGENTA = "\033[35m"
+    CYAN = "\033[36m"
+    WHITE = "\033[37m"
+
+    # Background colors
+    BG_RED = "\033[41m"
+    BG_GREEN = "\033[42m"
+    BG_YELLOW = "\033[43m"
+    BG_BLUE = "\033[44m"
+
+    @staticmethod
+    def ok(text: str) -> str:
+        """Green text for success/OK messages."""
+        return f"{Colors.GREEN}{text}{Colors.RESET}"
+
+    @staticmethod
+    def warning(text: str) -> str:
+        """Yellow text for warnings."""
+        return f"{Colors.YELLOW}{text}{Colors.RESET}"
+
+    @staticmethod
+    def error(text: str) -> str:
+        """Red text for errors."""
+        return f"{Colors.RED}{text}{Colors.RESET}"
+
+    @staticmethod
+    def info(text: str) -> str:
+        """Blue text for info."""
+        return f"{Colors.BLUE}{text}{Colors.RESET}"
+
+    @staticmethod
+    def dim(text: str) -> str:
+        """Dim text for less emphasis."""
+        return f"{Colors.DIM}{text}{Colors.RESET}"
+
+    @staticmethod
+    def bold(text: str) -> str:
+        """Bold text."""
+        return f"{Colors.BOLD}{text}{Colors.RESET}"
 
 
 def print_table(
@@ -208,6 +266,104 @@ def export_json(results: List[InferenceResult], filepath: str, context_tokens: i
     print(f"\n✓ Results exported to: / Resultados exportados para: {filepath}")
 
 
+def list_models():
+    """Prints all available models.
+
+    Imprime todos os modelos disponíveis.
+    """
+    models = get_all_models()
+    print("\n" + "=" * 70)
+    print("AVAILABLE MODELS / MODELOS DISPONÍVEIS")
+    print("=" * 70)
+
+    for model in models:
+        print(f"\n  [{model.params_billion}B] {model.name}")
+        print(f"     Architecture: {model.architecture}")
+        print(f"     Default precision: {model.precision_default}")
+        print(f"     KV cache: {model.kv_cache_mb_per_token} MB/token (FP16 baseline)")
+
+    print("\n" + "=" * 70)
+    print("\nUsage: python main.py --model <size>  (e.g., --model 7)")
+
+
+def print_model_vram_breakdown(model: LLMModel, context_tokens: int, quantization: Quantization, calculation_mode: CalculationMode = CalculationMode.CONSERVATIVE):
+    """Prints detailed VRAM breakdown for a specific model.
+
+    Imprime breakdown detalhado de VRAM para um modelo específico.
+
+    Args:
+        model: LLM model to analyze
+        context_tokens: Context size in tokens
+        quantization: Quantization type
+        calculation_mode: Calculation mode
+    """
+    from calculator import VRAMCalculator, BYTES_PER_PARAM, KV_CACHE_MULTIPLIER
+
+    calc = VRAMCalculator(quantization=quantization, calculation_mode=calculation_mode)
+    breakdown = calc.calculate_total_vram(model, context_tokens)
+
+    # Calculate real-world estimates
+    # Idle: model loaded, no active generation
+    # Peak: during token generation (KV cache fully allocated)
+    idle_estimate = breakdown.params_memory_gb + breakdown.overhead_gb
+    peak_estimate = breakdown.total_vram_gb
+
+    # Determine if close to 24GB limit for warning color
+    is_tight_24gb = 22 <= breakdown.total_vram_gb <= 24
+
+    print("\n" + "=" * 70)
+    print(f"{Colors.BOLD}VRAM BREAKDOWN: {model.name}{Colors.RESET}")
+    print("=" * 70)
+    print(f"\n{Colors.CYAN}Configuration:{Colors.RESET}")
+    print(f"  Batch size:           1 (inference only)")
+    print(f"  Context:              {context_tokens:,} tokens")
+    print(f"  Quantization backend: {Colors.bold(quantization.value.upper())} ({BYTES_PER_PARAM[quantization]} bytes/param)")
+    print(f"  KV cache precision:   FP16 (default) | Quantized (experimental)")
+    print(f"  Calculation mode:     {calculation_mode.value}")
+    print(f"  Memory allocator:     PyTorch-style (HF Transformers, vLLM)")
+
+    print(f"\n{Colors.CYAN}Memory Breakdown:{Colors.RESET}")
+    print(f"  Model parameters:     {breakdown.params_memory_gb:.2f} GB")
+    print(f"  Overhead (30%):       {Colors.dim(f'{breakdown.overhead_gb:.2f} GB')}")
+    print(f"  Model + overhead:     {breakdown.model_with_overhead_gb:.2f} GB")
+    print(f"  KV cache (FP16):      {Colors.warning(f'{breakdown.kv_cache_gb:.2f} GB')} ({calculation_mode.value} mode)")
+    print(f"  " + "-" * 40)
+    print(f"  {Colors.BOLD}TOTAL VRAM:{Colors.RESET:15} {Colors.bold(f'{breakdown.total_vram_gb:.2f} GB')}")
+
+    print(f"\n{Colors.CYAN}Real-World Usage Estimates:{Colors.RESET}")
+    print(f"  Idle (model loaded):      {idle_estimate:.2f} GB")
+    print(f"  Peak (generation):        {Colors.warning(f'{peak_estimate:.2f} GB')}")
+
+    print(f"\nMinimum GPU VRAM required: {breakdown.total_vram_gb:.1f} GB")
+    print(f"Recommended (with margin): {Colors.ok(f'{breakdown.total_vram_gb * 1.1:.1f} GB')}")
+
+    # Show assumptions for production mode
+    print(f"\n{Colors.DIM}  Assumptions:{Colors.RESET}")
+    print(f"    • batch_size = 1 (no batching)")
+    print(f"    • No LoRA adapters active")
+    print(f"    • No speculative decoding")
+    print(f"    • No tool calling overhead")
+    print(f"    • PyTorch allocator (TensorRT-LLM / llama.cpp may vary)")
+    print(f"    • KV cache in FP16 (quantized KV cache is experimental)")
+    print(f"      → Weights INT4 ≠ KV cache INT4 in most frameworks")
+
+    print(f"\n{Colors.DIM}  Scaling notes:{Colors.RESET}")
+    print(f"    • KV cache scales linearly with context length")
+    print(f"      → 16k context ≈ {breakdown.kv_cache_gb * 2:.1f} GB KV cache")
+    print(f"      → 32k context ≈ {breakdown.kv_cache_gb * 4:.1f} GB KV cache")
+    print(f"    • KV cache scales linearly with batch size")
+    print(f"      → batch_size = 4 ≈ +{breakdown.kv_cache_gb * 3:.1f} GB KV cache")
+    print(f"    • VRAM calculations do not account for throughput or latency")
+    print(f"      → This tool measures {Colors.bold('capacity')}, not speed")
+
+    # Warning for 24GB GPUs near limit
+    if is_tight_24gb:
+        print(f"\n  {Colors.BG_RED}{Colors.WHITE} ⚠️  WARNING: 24GB GPUs run at the limit.{Colors.RESET}")
+        print(f"     Any batching, adapters (LoRA), or additional features may cause OOM.")
+
+    print("=" * 70)
+
+
 def parse_args():
     """Parse CLI arguments.
 
@@ -224,12 +380,21 @@ Examples / Exemplos:
   python main.py -c 4096 --only-runs --export-json results.json
   python main.py -c 16384 --group-gpu
   python main.py -c 8192 --quantization int4
+  python main.py --list-models
+  python main.py --model 7 --context 8192
+  python main.py -m 70 -c 16384 -q int4
+  python main.py -m 70 -c 8192 -q int4 --mode production
 
 Available precisions / Precisões disponíveis:
   fp32 - Float32 (4 bytes/param) - Original precision, highest quality
   fp16 - Float16 (2 bytes/param) - Half VRAM, excellent quality
   int8 - Int8 (1 byte/param) - Quarter VRAM, small quality loss
   int4 - Int4 (0.5 byte/param) - Eighth VRAM, noticeable quality loss
+
+Calculation modes / Modos de cálculo:
+  theoretical - Ideal minimum (batch=1, no padding/alignment)
+  conservative - Default mode with 10%% buffer (minimal overhead)
+  production  - Real-world serving (batch>1, fragmentation) with 25%% buffer
         """,
     )
 
@@ -238,6 +403,20 @@ Available precisions / Precisões disponíveis:
         type=int,
         default=4096,
         help="Context size in tokens / Tamanho do contexto em tokens (default: 4096)",
+    )
+
+    parser.add_argument(
+        "--list-models",
+        action="store_true",
+        help="List all available models / Listar todos os modelos disponíveis",
+    )
+
+    parser.add_argument(
+        "-m", "--model",
+        type=int,
+        metavar="SIZE",
+        help="Model size in billions of parameters (e.g., 7, 13, 70) / "
+             "Tamanho do modelo em bilhões de parâmetros",
     )
 
     parser.add_argument(
@@ -286,6 +465,14 @@ Available precisions / Precisões disponíveis:
         help="Model precision/quantization / Precisão do modelo (fp32, fp16, int8, int4)",
     )
 
+    parser.add_argument(
+        "--mode",
+        choices=["theoretical", "conservative", "production"],
+        default="conservative",
+        help="Calculation mode / Modo de cálculo "
+             "(theoretical=ideal minimum, conservative=default, production=real-world serving)",
+    )
+
     return parser.parse_args()
 
 
@@ -295,6 +482,11 @@ def main():
     Função principal da CLI.
     """
     args = parse_args()
+
+    # Handle --list-models
+    if args.list_models:
+        list_models()
+        sys.exit(0)
 
     # Validate context
     # Validar contexto
@@ -312,6 +504,63 @@ def main():
         "int4": Quantization.INT4,
     }
     quantization = quant_map[args.quantization]
+
+    # Map calculation mode
+    # Mapear modo de cálculo
+    mode_map = {
+        "theoretical": CalculationMode.THEORETICAL,
+        "conservative": CalculationMode.CONSERVATIVE,
+        "production": CalculationMode.PRODUCTION,
+    }
+    calculation_mode = mode_map[args.mode]
+
+    # Handle --model (specific model)
+    # Lidar com --model (modelo específico)
+    if args.model:
+        model = get_model_by_size(args.model)
+        if not model:
+            available_sizes = [m.params_billion for m in get_all_models()]
+            print(f"\nError: Model size {args.model}B not found.", file=sys.stderr)
+            print(f"Available sizes: {available_sizes}")
+            print("Use --list-models to see all available models.")
+            sys.exit(1)
+
+        # Show VRAM breakdown for the specific model
+        print_model_vram_breakdown(model, args.context, quantization, calculation_mode)
+
+        # Show which GPUs can run this model
+        gpus = get_all_gpus()
+        calculator = VRAMCalculator(quantization=quantization, calculation_mode=calculation_mode)
+        results = []
+        for gpu in gpus:
+            result = calculator.evaluate_pair(model, gpu, args.context)
+            results.append(result)
+
+        print(f"\nGPU COMPATIBILITY ({args.context:,} tokens, {quantization.value.upper()}):")
+        print("-" * 70)
+
+        runnable = [r for r in results if r.status == Status.RUNS]
+        not_runnable = [r for r in results if r.status != Status.RUNS]
+
+        if runnable:
+            print(f"\n✓ RUNS on these GPUs:")
+            for r in sorted(runnable, key=lambda x: x.gpu_vram_gb):
+                free_pct = r.vram_free_percent
+                print(f"  {r.gpu_name:<25} ({r.gpu_vram_gb:3} GB) - "
+                      f"{free_pct:4.1f}% free")
+
+        if not_runnable:
+            print(f"\n✗ DOESN'T RUN - needs more VRAM:")
+            sorted_by_need = sorted(not_runnable, key=lambda x: -(x.required_vram_gb - x.gpu_vram_gb))[:5]
+            for r in sorted_by_need:
+                print(f"  {r.gpu_name:<25} ({r.gpu_vram_gb:3} GB) - "
+                      f"needs {r.required_vram_gb:.1f} GB")
+
+        print("\n" + "=" * 70)
+        sys.exit(0)
+
+    # Original flow: show all combinations
+    # Fluxo original: mostrar todas as combinações
 
     # Quantization info
     # Info sobre quantização
@@ -342,7 +591,7 @@ def main():
 
     # Calculate
     # Calcular
-    calculator = VRAMCalculator(quantization=quantization)
+    calculator = VRAMCalculator(quantization=quantization, calculation_mode=calculation_mode)
     results = []
     for model in models:
         for gpu in gpus:
@@ -355,8 +604,10 @@ def main():
     print("CALCULADORA DE VIABILIDADE DE INFERÊNCIA LOCAL DE LLMs")
     print("=" * 70)
     print(f"\nConfiguration / Configuração:")
+    print(f"  • Batch size: 1 (inference)")
     print(f"  • Context: / Contexto: {args.context:,} tokens")
-    print(f"  • Quantization: / Quantização: {args.quantization.upper()}")
+    print(f"  • Quantization: / Quantização: {Colors.bold(args.quantization.upper())}")
+    print(f"  • Mode: / Modo: {args.mode}")
     print(f"  • GPUs: {gpu_type_label} ({len(gpus)} models / modelos)")
     print(f"  • LLM Models: / Modelos LLM: {len(models)} sizes / tamanhos")
 
@@ -383,6 +634,31 @@ def main():
 
     if args.export_json:
         export_json(results, args.export_json, args.context, quantization)
+
+    # Warning for 24GB GPUs running near limit
+    # Aviso para GPUs de 24GB rodando no limite
+    tight_24gb = [
+        r for r in results
+        if r.status == Status.RUNS
+        and r.gpu_vram_gb == 24
+        and 22 <= r.required_vram_gb <= 24
+    ]
+    if tight_24gb:
+        print("\n" + "⚠️  " * 12)
+        print(f"\n{Colors.BOLD}NOTICE: 24GB GPUs running at the limit:{Colors.RESET}")
+        print(f"  {Colors.warning('• Any batching (batch_size > 1) may cause OOM')}")
+        print(f"  {Colors.warning('• LoRA adapters add ~0.5-2GB per adapter')}")
+        print(f"  {Colors.warning('• Speculative decoding adds ~30-50% memory')}")
+        print(f"  {Colors.warning('• Tool calling / function calling adds overhead')}")
+        print(f"\n{Colors.DIM}  Assumptions for calculations above:{Colors.RESET}")
+        print(f"    Memory model: PyTorch allocator (HF Transformers, vLLM)")
+        print(f"    KV cache: FP16 (quantized KV is experimental/exclusive)")
+        print(f"    batch_size = 1 (no batching)")
+        print(f"    No LoRA adapters active")
+        print(f"    No speculative decoding")
+        print(f"    No tool calling overhead")
+        print(f"  {Colors.DIM}Note: TensorRT-LLM, llama.cpp, EXL2 may have different behavior{Colors.RESET}")
+        print()
 
     print("\n" + "=" * 70)
     print()

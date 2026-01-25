@@ -99,12 +99,13 @@ LLM_MODELS: List[LLMModel] = [
     ),
     # ~65-70B models
     # Modelos ~65-70B
+    # KV cache adjusted for production use (includes padding, alignment, buffers)
     LLMModel(
         name="LLaMA 2 70B / LLaMA 3.1 70B",
         params_billion=70,
         architecture="decoder-only",
         precision_default="fp16",
-        kv_cache_mb_per_token=3.5,
+        kv_cache_mb_per_token=4.27,  # ~35 GB for 8k context in production
     ),
     # ~100B+ models
     # Modelos ~100B+

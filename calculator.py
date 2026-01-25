@@ -60,6 +60,16 @@ class Status(Enum):
     NOT_RUNS = "DOESN'T RUN"  # DOESN'T RUN / NÃO RODA
 
 
+class CalculationMode(Enum):
+    """VRAM calculation mode.
+
+    Modo de cálculo de VRAM.
+    """
+    THEORETICAL = "theoretical"   # Ideal minimum, batch=1, no padding/alignment
+    CONSERVATIVE = "conservative"   # Current default, some overhead buffer
+    PRODUCTION = "production"     # Real-world serving (batch>1, buffers, fragmentation)
+
+
 @dataclass
 class InferenceResult:
     """Feasibility analysis result for a model × GPU pair.
@@ -156,16 +166,22 @@ BYTES_PER_PARAM = {
 
 # KV cache multiplier per precision
 # Multiplicador do KV cache por precisão
-# KV cache in FP16 is standard; INT8 can reduce by half in some frameworks
-# KV cache em FP16 é o padrão; INT8 pode reduzir pela metade em alguns frameworks
-# Conservative values: assume FP16 for most, except when optimized
-# Valores conservadores: assumimos FP16 para quase tudo, exceto quando há otimização
+# IMPORTANT: In most production stacks today, KV cache stays in FP16/BF16
+# even with quantized weights (INT4/INT8). KV cache quantization is experimental.
+# IMPORTANTE: Na maioria dos stacks de produção hoje, KV cache permanece em FP16/BF16
+# mesmo com pesos quantizados (INT4/INT8). Quantização de KV cache é experimental.
+#
+# Conservative values: assume FP16 for KV cache unless explicitly optimized
+# Valores conservadores: assumimos FP16 para KV cache exceto quando otimizado explicitamente
 KV_CACHE_MULTIPLIER = {
     Quantization.FP32: 2.0,  # FP32 uses 2x the space of FP16
-    Quantization.FP16: 1.0,  # Baseline
-    Quantization.INT8: 0.6,  # Some frameworks support INT8 KV cache
-    Quantization.INT4: 0.6,  # INT4 usually uses INT8 for KV cache
+    Quantization.FP16: 1.0,  # Baseline - standard for most frameworks
+    Quantization.INT8: 0.85,  # INT8 weights, but KV cache often FP16 (conservative)
+    Quantization.INT4: 0.85,  # INT4 weights, but KV cache usually FP16 (realistic)
 }
+# Note: 0.85 assumes some KV cache optimization (paged KV, compression).
+# For strict real-world accuracy with INT4 weights, use 1.0 (FP16 KV cache).
+# Only vLLM paged KV, custom kernels, or EXL2-like backends support quantized KV cache.
 
 # Overhead factor (runtime, activations, etc.)
 # Fator de overhead (runtime, activations, etc.)
@@ -188,6 +204,7 @@ class VRAMCalculator:
         self,
         quantization: Quantization = Quantization.FP16,
         overhead_factor: float = OVERHEAD_FACTOR,
+        calculation_mode: CalculationMode = CalculationMode.CONSERVATIVE,
     ):
         """Initialize the calculator.
 
@@ -196,17 +213,22 @@ class VRAMCalculator:
         Args:
             quantization: Quantization type (default: FP16)
             overhead_factor: Overhead factor (0.30 = 30%)
+            calculation_mode: Calculation mode for VRAM estimation
         """
         self.quantization = quantization
         self.overhead_factor = overhead_factor
+        self.calculation_mode = calculation_mode
 
     def calculate_params_memory(self, params_billion: int) -> float:
         """Calculate base memory for model parameters.
 
         Calcula memória base dos parâmetros do modelo.
 
-        Formula: params_memory_gb = params_billion * BYTES_PER_PARAM / 1024
-        Fórmula: params_memory_gb = params_billion × BYTES_PER_PARAM / 1024
+        Formula: params_memory_gb = params_billion * bytes_per_param
+        Fórmula: params_memory_gb = params_billion × BYTES_PER_PARAM
+
+        Note: params_billion is in billions, and 1 billion bytes = 1 GB.
+        So for FP16 (2 bytes/param): 70B model = 70 × 2 = 140 GB
 
         Args:
             params_billion: Model size in billions of parameters
@@ -215,9 +237,9 @@ class VRAMCalculator:
             Memory in GB
         """
         bytes_per_param = BYTES_PER_PARAM[self.quantization]
-        # params_billion is in billions, so:
-        # (params_billion * 1e9 * bytes_per_param) / (1024^3)
-        params_memory_gb = (params_billion * bytes_per_param) / 1024
+        # params_billion is in billions, 1 billion bytes = 1 GB
+        # For FP16: 7B × 2 bytes = 14 GB, 70B × 2 bytes = 140 GB
+        params_memory_gb = params_billion * bytes_per_param
         return params_memory_gb
 
     def calculate_overhead(self, params_memory_gb: float) -> float:
@@ -245,14 +267,19 @@ class VRAMCalculator:
 
         Calcula memória necessária para KV cache.
 
-        Formula: kv_cache_gb = (kv_cache_mb_per_token * context_tokens * multiplier) / 1024
-        Fórmula: kv_cache_gb = (kv_cache_mb_per_token × context_tokens × multiplier) / 1024
+        Formula: kv_cache_gb = (kv_cache_mb_per_token * context_tokens * multiplier * mode_buffer) / 1024
+        Fórmula: kv_cache_gb = (kv_cache_mb_per_token × context_tokens × multiplier × mode_buffer) / 1024
 
         The base KV cache is defined for FP16. For other precisions, we apply
         a multiplier: FP32 uses 2x, INT8/INT4 may use less depending on the framework.
 
         O KV cache base é definido para FP16. Para outras precisões, aplicamos
         um multiplicador: FP32 usa 2x, INT8/INT4 podem usar menos dependendo do framework.
+
+        The calculation mode adds a buffer for production scenarios:
+        - THEORETICAL: No buffer (ideal minimum, batch=1, no padding)
+        - CONSERVATIVE: 10% buffer (minimal overhead)
+        - PRODUCTION: 25% buffer (batch>1, fragmentation, real-world serving)
 
         Args:
             kv_cache_mb_per_token: MB per token for the model (FP16 baseline)
@@ -262,7 +289,16 @@ class VRAMCalculator:
             KV cache in GB
         """
         multiplier = self.quantization.kv_cache_multiplier
-        kv_cache_mb = kv_cache_mb_per_token * context_tokens * multiplier
+
+        # Production buffer based on calculation mode
+        # Buffer de produção baseado no modo de cálculo
+        mode_buffer = {
+            CalculationMode.THEORETICAL: 1.0,   # No extra buffer / Sem buffer extra
+            CalculationMode.CONSERVATIVE: 1.1,  # 10% buffer for overhead
+            CalculationMode.PRODUCTION: 1.25,   # 25% buffer for real-world serving
+        }.get(self.calculation_mode, 1.0)
+
+        kv_cache_mb = kv_cache_mb_per_token * context_tokens * multiplier * mode_buffer
         kv_cache_gb = kv_cache_mb / 1024
         return kv_cache_gb
 
