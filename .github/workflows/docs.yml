@@ -20,7 +20,6 @@ jobs:
           python-version: '3.11'
 
       - run: |
-          pip install sphinx
           pip install -r docs/requirements.txt || true
           sphinx-build -b html docs docs/_build/html
 
