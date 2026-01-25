@@ -1,0 +1,562 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>calculator &mdash; Local Inference Calculator 0.1.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=01f34227"></script>
+      <script src="../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            Local Inference Calculator
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents / Conteúdo:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../usage.html">User Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../api.html">API Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../examples.html">Examples</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">Local Inference Calculator</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html">Module code</a></li>
+      <li class="breadcrumb-item active">calculator</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for calculator</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">VRAM usage calculator for LLM inference.</span>
+
+<span class="sd">Implements the logic for estimating the memory required to run</span>
+<span class="sd">language models on specific GPUs.</span>
+
+<span class="sd">Calculadora de uso de VRAM para inferência de LLMs.</span>
+<span class="sd">Implementa a lógica de estimativa de memória necessária para rodar</span>
+<span class="sd">modelos de linguagem em GPUs específicas.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">dataclass</span><span class="p">,</span> <span class="n">field</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">enum</span><span class="w"> </span><span class="kn">import</span> <span class="n">Enum</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">List</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">models</span><span class="w"> </span><span class="kn">import</span> <span class="n">LLMModel</span><span class="p">,</span> <span class="n">get_all_models</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">gpus</span><span class="w"> </span><span class="kn">import</span> <span class="n">GPU</span><span class="p">,</span> <span class="n">get_all_gpus</span>
+
+
+<div class="viewcode-block" id="Quantization">
+<a class="viewcode-back" href="../api.html#calculator.Quantization">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">Quantization</span><span class="p">(</span><span class="n">Enum</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Supported precision/quantization types for inference.</span>
+
+<span class="sd">    Tipos de precisão/quantização suportados para inferência.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">FP32</span> <span class="o">=</span> <span class="s2">&quot;fp32&quot;</span>      <span class="c1"># 4 bytes per parameter (float32) / 4 bytes por parâmetro</span>
+    <span class="n">FP16</span> <span class="o">=</span> <span class="s2">&quot;fp16&quot;</span>      <span class="c1"># 2 bytes per parameter (float16 / half precision)</span>
+    <span class="n">INT8</span> <span class="o">=</span> <span class="s2">&quot;int8&quot;</span>      <span class="c1"># 1 byte per parameter (8-bit quantization)</span>
+    <span class="n">INT4</span> <span class="o">=</span> <span class="s2">&quot;int4&quot;</span>      <span class="c1"># 0.5 byte per parameter (4-bit quantization, packed)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">bytes_per_param</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Returns bytes per parameter for this precision.</span>
+
+<span class="sd">        Retorna bytes por parâmetro para esta precisão.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">BYTES_PER_PARAM</span><span class="p">[</span><span class="bp">self</span><span class="p">]</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">kv_cache_multiplier</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;KV cache multiplier based on precision.</span>
+
+<span class="sd">        Multiplicador para KV cache baseado na precisão.</span>
+
+<span class="sd">        Note: KV cache usually remains in FP16 even with quantized weights,</span>
+<span class="sd">        but some frameworks support quantized KV cache with INT8/INT4.</span>
+
+<span class="sd">        Nota: KV cache geralmente permanece em FP16 mesmo com pesos quantizados,</span>
+<span class="sd">        mas com INT8/INT4 alguns frameworks suportam KV cache quantizado.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">KV_CACHE_MULTIPLIER</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="Status">
+<a class="viewcode-back" href="../api.html#calculator.Status">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">Status</span><span class="p">(</span><span class="n">Enum</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Inference feasibility status.</span>
+
+<span class="sd">    Status de viabilidade da inferência.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">RUNS</span> <span class="o">=</span> <span class="s2">&quot;RUNS&quot;</span>      <span class="c1"># RUNS / RODA</span>
+    <span class="n">NOT_RUNS</span> <span class="o">=</span> <span class="s2">&quot;DOESN&#39;T RUN&quot;</span>  <span class="c1"># DOESN&#39;T RUN / NÃO RODA</span></div>
+
+
+
+<div class="viewcode-block" id="InferenceResult">
+<a class="viewcode-back" href="../api.html#calculator.InferenceResult">[docs]</a>
+<span class="nd">@dataclass</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">InferenceResult</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Feasibility analysis result for a model × GPU pair.</span>
+
+<span class="sd">    Resultado de análise de viabilidade para um par modelo × GPU.</span>
+
+<span class="sd">    Attributes:</span>
+<span class="sd">        model_name: Name of the LLM model</span>
+<span class="sd">        model_params_billion: Model size in billions of parameters</span>
+<span class="sd">        gpu_name: Name of the GPU</span>
+<span class="sd">        gpu_vram_gb: GPU VRAM capacity in GB</span>
+<span class="sd">        required_vram_gb: VRAM required for inference</span>
+<span class="sd">        status: Feasibility status (RUNS or DOESN&#39;T RUN)</span>
+<span class="sd">        vram_free_percent: Percentage of VRAM remaining</span>
+<span class="sd">        quantization: Quantization type used</span>
+<span class="sd">        warning: Optional warning message</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">model_name</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">model_params_billion</span><span class="p">:</span> <span class="nb">int</span>
+    <span class="n">gpu_name</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">gpu_vram_gb</span><span class="p">:</span> <span class="nb">int</span>
+    <span class="n">required_vram_gb</span><span class="p">:</span> <span class="nb">float</span>
+    <span class="n">status</span><span class="p">:</span> <span class="n">Status</span>
+    <span class="n">vram_free_percent</span><span class="p">:</span> <span class="nb">float</span>
+    <span class="n">quantization</span><span class="p">:</span> <span class="n">Quantization</span>
+    <span class="n">warning</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+
+<div class="viewcode-block" id="InferenceResult.to_dict">
+<a class="viewcode-back" href="../api.html#calculator.InferenceResult.to_dict">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">to_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Converts to serializable dictionary.</span>
+
+<span class="sd">        Converte para dicionário serializável.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="p">{</span>
+            <span class="s2">&quot;model&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">model_name</span><span class="p">,</span>
+            <span class="s2">&quot;model_size&quot;</span><span class="p">:</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">model_params_billion</span><span class="si">}</span><span class="s2">B&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;gpu&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">gpu_name</span><span class="p">,</span>
+            <span class="s2">&quot;gpu_vram_gb&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">gpu_vram_gb</span><span class="p">,</span>
+            <span class="s2">&quot;required_vram_gb&quot;</span><span class="p">:</span> <span class="nb">round</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">required_vram_gb</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span>
+            <span class="s2">&quot;status&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">status</span><span class="o">.</span><span class="n">value</span><span class="p">,</span>
+            <span class="s2">&quot;vram_free_percent&quot;</span><span class="p">:</span> <span class="nb">round</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">vram_free_percent</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span>
+            <span class="s2">&quot;quantization&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">quantization</span><span class="o">.</span><span class="n">value</span><span class="p">,</span>
+            <span class="s2">&quot;warning&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">warning</span><span class="p">,</span>
+        <span class="p">}</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="CalculationBreakdown">
+<a class="viewcode-back" href="../api.html#calculator.CalculationBreakdown">[docs]</a>
+<span class="nd">@dataclass</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">CalculationBreakdown</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Detailed VRAM calculation breakdown.</span>
+
+<span class="sd">    Breakdown detalhado do cálculo de VRAM.</span>
+
+<span class="sd">    Attributes:</span>
+<span class="sd">        params_memory_gb: Memory for model parameters in GB</span>
+<span class="sd">        overhead_gb: Memory overhead in GB</span>
+<span class="sd">        model_with_overhead_gb: Parameters + overhead in GB</span>
+<span class="sd">        kv_cache_gb: KV cache memory in GB</span>
+<span class="sd">        total_vram_gb: Total VRAM required in GB</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">params_memory_gb</span><span class="p">:</span> <span class="nb">float</span>
+    <span class="n">overhead_gb</span><span class="p">:</span> <span class="nb">float</span>
+    <span class="n">model_with_overhead_gb</span><span class="p">:</span> <span class="nb">float</span>
+    <span class="n">kv_cache_gb</span><span class="p">:</span> <span class="nb">float</span>
+    <span class="n">total_vram_gb</span><span class="p">:</span> <span class="nb">float</span>
+
+<div class="viewcode-block" id="CalculationBreakdown.to_dict">
+<a class="viewcode-back" href="../api.html#calculator.CalculationBreakdown.to_dict">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">to_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Converts to serializable dictionary.</span>
+
+<span class="sd">        Converte para dicionário serializável.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="p">{</span>
+            <span class="s2">&quot;params_memory_gb&quot;</span><span class="p">:</span> <span class="nb">round</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params_memory_gb</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span>
+            <span class="s2">&quot;overhead_gb&quot;</span><span class="p">:</span> <span class="nb">round</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">overhead_gb</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span>
+            <span class="s2">&quot;model_with_overhead_gb&quot;</span><span class="p">:</span> <span class="nb">round</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model_with_overhead_gb</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span>
+            <span class="s2">&quot;kv_cache_gb&quot;</span><span class="p">:</span> <span class="nb">round</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">kv_cache_gb</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span>
+            <span class="s2">&quot;total_vram_gb&quot;</span><span class="p">:</span> <span class="nb">round</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">total_vram_gb</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span>
+        <span class="p">}</span></div>
+</div>
+
+
+
+<span class="c1"># ============================================================================</span>
+<span class="c1"># CALCULATION CONSTANTS (Conservative values)</span>
+<span class="c1"># CONSTANTES DE CÁLCULO (Valores conservadores)</span>
+<span class="c1"># ============================================================================</span>
+
+<span class="c1"># Bytes per parameter for each precision</span>
+<span class="c1"># Bytes por parâmetro para cada precisão</span>
+<span class="n">BYTES_PER_PARAM</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="n">Quantization</span><span class="o">.</span><span class="n">FP32</span><span class="p">:</span> <span class="mf">4.0</span><span class="p">,</span>  <span class="c1"># 32 bits = 4 bytes</span>
+    <span class="n">Quantization</span><span class="o">.</span><span class="n">FP16</span><span class="p">:</span> <span class="mf">2.0</span><span class="p">,</span>  <span class="c1"># 16 bits = 2 bytes</span>
+    <span class="n">Quantization</span><span class="o">.</span><span class="n">INT8</span><span class="p">:</span> <span class="mf">1.0</span><span class="p">,</span>  <span class="c1"># 8 bits = 1 byte</span>
+    <span class="n">Quantization</span><span class="o">.</span><span class="n">INT4</span><span class="p">:</span> <span class="mf">0.5</span><span class="p">,</span>  <span class="c1"># 4 bits = 0.5 byte (packed)</span>
+<span class="p">}</span>
+
+<span class="c1"># KV cache multiplier per precision</span>
+<span class="c1"># Multiplicador do KV cache por precisão</span>
+<span class="c1"># KV cache in FP16 is standard; INT8 can reduce by half in some frameworks</span>
+<span class="c1"># KV cache em FP16 é o padrão; INT8 pode reduzir pela metade em alguns frameworks</span>
+<span class="c1"># Conservative values: assume FP16 for most, except when optimized</span>
+<span class="c1"># Valores conservadores: assumimos FP16 para quase tudo, exceto quando há otimização</span>
+<span class="n">KV_CACHE_MULTIPLIER</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="n">Quantization</span><span class="o">.</span><span class="n">FP32</span><span class="p">:</span> <span class="mf">2.0</span><span class="p">,</span>  <span class="c1"># FP32 uses 2x the space of FP16</span>
+    <span class="n">Quantization</span><span class="o">.</span><span class="n">FP16</span><span class="p">:</span> <span class="mf">1.0</span><span class="p">,</span>  <span class="c1"># Baseline</span>
+    <span class="n">Quantization</span><span class="o">.</span><span class="n">INT8</span><span class="p">:</span> <span class="mf">0.6</span><span class="p">,</span>  <span class="c1"># Some frameworks support INT8 KV cache</span>
+    <span class="n">Quantization</span><span class="o">.</span><span class="n">INT4</span><span class="p">:</span> <span class="mf">0.6</span><span class="p">,</span>  <span class="c1"># INT4 usually uses INT8 for KV cache</span>
+<span class="p">}</span>
+
+<span class="c1"># Overhead factor (runtime, activations, etc.)</span>
+<span class="c1"># Fator de overhead (runtime, activations, etc.)</span>
+<span class="c1"># Conservative: framework + memory overhead during inference</span>
+<span class="c1"># Conservador: framework + overhead de memória durante inferência</span>
+<span class="n">OVERHEAD_FACTOR</span> <span class="o">=</span> <span class="mf">0.30</span>  <span class="c1"># 30% overhead</span>
+
+<span class="c1"># Minimum safety margin to consider viable</span>
+<span class="c1"># Margem de segurança mínima para considerar viável</span>
+<span class="n">SAFETY_MARGIN_THRESHOLD</span> <span class="o">=</span> <span class="mf">0.10</span>  <span class="c1"># 10%</span>
+
+
+<div class="viewcode-block" id="VRAMCalculator">
+<a class="viewcode-back" href="../api.html#calculator.VRAMCalculator">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">VRAMCalculator</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;VRAM calculator for LLM inference.</span>
+
+<span class="sd">    Calculadora de VRAM para inferência de LLMs.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="VRAMCalculator.__init__">
+<a class="viewcode-back" href="../api.html#calculator.VRAMCalculator.__init__">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">quantization</span><span class="p">:</span> <span class="n">Quantization</span> <span class="o">=</span> <span class="n">Quantization</span><span class="o">.</span><span class="n">FP16</span><span class="p">,</span>
+        <span class="n">overhead_factor</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">OVERHEAD_FACTOR</span><span class="p">,</span>
+    <span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize the calculator.</span>
+
+<span class="sd">        Inicializa a calculadora.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            quantization: Quantization type (default: FP16)</span>
+<span class="sd">            overhead_factor: Overhead factor (0.30 = 30%)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">quantization</span> <span class="o">=</span> <span class="n">quantization</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">overhead_factor</span> <span class="o">=</span> <span class="n">overhead_factor</span></div>
+
+
+<div class="viewcode-block" id="VRAMCalculator.calculate_params_memory">
+<a class="viewcode-back" href="../api.html#calculator.VRAMCalculator.calculate_params_memory">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">calculate_params_memory</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params_billion</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Calculate base memory for model parameters.</span>
+
+<span class="sd">        Calcula memória base dos parâmetros do modelo.</span>
+
+<span class="sd">        Formula: params_memory_gb = params_billion * BYTES_PER_PARAM / 1024</span>
+<span class="sd">        Fórmula: params_memory_gb = params_billion × BYTES_PER_PARAM / 1024</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            params_billion: Model size in billions of parameters</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Memory in GB</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">bytes_per_param</span> <span class="o">=</span> <span class="n">BYTES_PER_PARAM</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">quantization</span><span class="p">]</span>
+        <span class="c1"># params_billion is in billions, so:</span>
+        <span class="c1"># (params_billion * 1e9 * bytes_per_param) / (1024^3)</span>
+        <span class="n">params_memory_gb</span> <span class="o">=</span> <span class="p">(</span><span class="n">params_billion</span> <span class="o">*</span> <span class="n">bytes_per_param</span><span class="p">)</span> <span class="o">/</span> <span class="mi">1024</span>
+        <span class="k">return</span> <span class="n">params_memory_gb</span></div>
+
+
+<div class="viewcode-block" id="VRAMCalculator.calculate_overhead">
+<a class="viewcode-back" href="../api.html#calculator.VRAMCalculator.calculate_overhead">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">calculate_overhead</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params_memory_gb</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Calculate memory overhead (runtime, activations, etc.).</span>
+
+<span class="sd">        Calcula overhead de memória (runtime, activations, etc.).</span>
+
+<span class="sd">        Formula: overhead = params_memory * overhead_factor</span>
+<span class="sd">        Fórmula: overhead = params_memory × overhead_factor</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            params_memory_gb: Base parameter memory in GB</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Overhead in GB</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">params_memory_gb</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">overhead_factor</span></div>
+
+
+<div class="viewcode-block" id="VRAMCalculator.calculate_kv_cache">
+<a class="viewcode-back" href="../api.html#calculator.VRAMCalculator.calculate_kv_cache">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">calculate_kv_cache</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">kv_cache_mb_per_token</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+        <span class="n">context_tokens</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Calculate memory required for KV cache.</span>
+
+<span class="sd">        Calcula memória necessária para KV cache.</span>
+
+<span class="sd">        Formula: kv_cache_gb = (kv_cache_mb_per_token * context_tokens * multiplier) / 1024</span>
+<span class="sd">        Fórmula: kv_cache_gb = (kv_cache_mb_per_token × context_tokens × multiplier) / 1024</span>
+
+<span class="sd">        The base KV cache is defined for FP16. For other precisions, we apply</span>
+<span class="sd">        a multiplier: FP32 uses 2x, INT8/INT4 may use less depending on the framework.</span>
+
+<span class="sd">        O KV cache base é definido para FP16. Para outras precisões, aplicamos</span>
+<span class="sd">        um multiplicador: FP32 usa 2x, INT8/INT4 podem usar menos dependendo do framework.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            kv_cache_mb_per_token: MB per token for the model (FP16 baseline)</span>
+<span class="sd">            context_tokens: Context size in tokens</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            KV cache in GB</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">multiplier</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">quantization</span><span class="o">.</span><span class="n">kv_cache_multiplier</span>
+        <span class="n">kv_cache_mb</span> <span class="o">=</span> <span class="n">kv_cache_mb_per_token</span> <span class="o">*</span> <span class="n">context_tokens</span> <span class="o">*</span> <span class="n">multiplier</span>
+        <span class="n">kv_cache_gb</span> <span class="o">=</span> <span class="n">kv_cache_mb</span> <span class="o">/</span> <span class="mi">1024</span>
+        <span class="k">return</span> <span class="n">kv_cache_gb</span></div>
+
+
+<div class="viewcode-block" id="VRAMCalculator.calculate_total_vram">
+<a class="viewcode-back" href="../api.html#calculator.VRAMCalculator.calculate_total_vram">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">calculate_total_vram</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">model</span><span class="p">:</span> <span class="n">LLMModel</span><span class="p">,</span>
+        <span class="n">context_tokens</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">CalculationBreakdown</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Calculate total VRAM required for a model with given context.</span>
+
+<span class="sd">        Calcula VRAM total necessária para um modelo com contexto dado.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            model: LLM model to evaluate</span>
+<span class="sd">            context_tokens: Context size in tokens</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            CalculationBreakdown with calculation details</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># 5.1 Model parameters</span>
+        <span class="c1"># Parâmetros do modelo</span>
+        <span class="n">params_memory_gb</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">calculate_params_memory</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">params_billion</span><span class="p">)</span>
+
+        <span class="c1"># 5.2 Overhead</span>
+        <span class="n">overhead_gb</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">calculate_overhead</span><span class="p">(</span><span class="n">params_memory_gb</span><span class="p">)</span>
+        <span class="n">model_with_overhead_gb</span> <span class="o">=</span> <span class="n">params_memory_gb</span> <span class="o">+</span> <span class="n">overhead_gb</span>
+
+        <span class="c1"># 5.3 KV Cache</span>
+        <span class="n">kv_cache_gb</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">calculate_kv_cache</span><span class="p">(</span>
+            <span class="n">model</span><span class="o">.</span><span class="n">kv_cache_mb_per_token</span><span class="p">,</span>
+            <span class="n">context_tokens</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="c1"># 5.4 Total VRAM</span>
+        <span class="c1"># VRAM total</span>
+        <span class="n">total_vram_gb</span> <span class="o">=</span> <span class="n">model_with_overhead_gb</span> <span class="o">+</span> <span class="n">kv_cache_gb</span>
+
+        <span class="k">return</span> <span class="n">CalculationBreakdown</span><span class="p">(</span>
+            <span class="n">params_memory_gb</span><span class="o">=</span><span class="n">params_memory_gb</span><span class="p">,</span>
+            <span class="n">overhead_gb</span><span class="o">=</span><span class="n">overhead_gb</span><span class="p">,</span>
+            <span class="n">model_with_overhead_gb</span><span class="o">=</span><span class="n">model_with_overhead_gb</span><span class="p">,</span>
+            <span class="n">kv_cache_gb</span><span class="o">=</span><span class="n">kv_cache_gb</span><span class="p">,</span>
+            <span class="n">total_vram_gb</span><span class="o">=</span><span class="n">total_vram_gb</span><span class="p">,</span>
+        <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="VRAMCalculator.evaluate_pair">
+<a class="viewcode-back" href="../api.html#calculator.VRAMCalculator.evaluate_pair">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">evaluate_pair</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">model</span><span class="p">:</span> <span class="n">LLMModel</span><span class="p">,</span>
+        <span class="n">gpu</span><span class="p">:</span> <span class="n">GPU</span><span class="p">,</span>
+        <span class="n">context_tokens</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">quantization</span><span class="p">:</span> <span class="n">Quantization</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">InferenceResult</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Evaluate if a model × GPU pair is viable for the given context.</span>
+
+<span class="sd">        Avalia se um par modelo × GPU é viável para o contexto dado.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            model: LLM model to evaluate</span>
+<span class="sd">            gpu: GPU to evaluate</span>
+<span class="sd">            context_tokens: Context size in tokens</span>
+<span class="sd">            quantization: Override quantization (uses instance default if None)</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            InferenceResult with status and details</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">breakdown</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">calculate_total_vram</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">context_tokens</span><span class="p">)</span>
+        <span class="n">required_vram</span> <span class="o">=</span> <span class="n">breakdown</span><span class="o">.</span><span class="n">total_vram_gb</span>
+
+        <span class="c1"># 6. Decision logic</span>
+        <span class="c1"># Lógica de decisão</span>
+        <span class="k">if</span> <span class="n">required_vram</span> <span class="o">&lt;=</span> <span class="n">gpu</span><span class="o">.</span><span class="n">vram_gb</span><span class="p">:</span>
+            <span class="n">status</span> <span class="o">=</span> <span class="n">Status</span><span class="o">.</span><span class="n">RUNS</span>
+            <span class="n">vram_free_percent</span> <span class="o">=</span> <span class="p">((</span><span class="n">gpu</span><span class="o">.</span><span class="n">vram_gb</span> <span class="o">-</span> <span class="n">required_vram</span><span class="p">)</span> <span class="o">/</span> <span class="n">gpu</span><span class="o">.</span><span class="n">vram_gb</span><span class="p">)</span> <span class="o">*</span> <span class="mi">100</span>
+
+            <span class="c1"># Warning if margin &lt; 10%</span>
+            <span class="c1"># Aviso se margem &lt; 10%</span>
+            <span class="n">warning</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="k">if</span> <span class="n">vram_free_percent</span> <span class="o">&lt;</span> <span class="p">(</span><span class="n">SAFETY_MARGIN_THRESHOLD</span> <span class="o">*</span> <span class="mi">100</span><span class="p">):</span>
+                <span class="n">warning</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;Low safety margin (</span><span class="si">{</span><span class="n">vram_free_percent</span><span class="si">:</span><span class="s2">.1f</span><span class="si">}</span><span class="s2">% free) / Margem de segurança baixa&quot;</span>
+
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">status</span> <span class="o">=</span> <span class="n">Status</span><span class="o">.</span><span class="n">NOT_RUNS</span>
+            <span class="n">vram_free_percent</span> <span class="o">=</span> <span class="mf">0.0</span>
+            <span class="n">warning</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="k">return</span> <span class="n">InferenceResult</span><span class="p">(</span>
+            <span class="n">model_name</span><span class="o">=</span><span class="n">model</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+            <span class="n">model_params_billion</span><span class="o">=</span><span class="n">model</span><span class="o">.</span><span class="n">params_billion</span><span class="p">,</span>
+            <span class="n">gpu_name</span><span class="o">=</span><span class="n">gpu</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+            <span class="n">gpu_vram_gb</span><span class="o">=</span><span class="n">gpu</span><span class="o">.</span><span class="n">vram_gb</span><span class="p">,</span>
+            <span class="n">required_vram_gb</span><span class="o">=</span><span class="n">required_vram</span><span class="p">,</span>
+            <span class="n">status</span><span class="o">=</span><span class="n">status</span><span class="p">,</span>
+            <span class="n">vram_free_percent</span><span class="o">=</span><span class="n">vram_free_percent</span><span class="p">,</span>
+            <span class="n">quantization</span><span class="o">=</span><span class="n">quantization</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">quantization</span><span class="p">,</span>
+            <span class="n">warning</span><span class="o">=</span><span class="n">warning</span><span class="p">,</span>
+        <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="VRAMCalculator.calculate_all_combinations">
+<a class="viewcode-back" href="../api.html#calculator.VRAMCalculator.calculate_all_combinations">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">calculate_all_combinations</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">context_tokens</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">models</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">LLMModel</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">gpus</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">GPU</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">InferenceResult</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Calculate feasibility for all model × GPU combinations.</span>
+
+<span class="sd">        Calcula viabilidade para todas as combinações modelo × GPU.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            context_tokens: Context size in tokens</span>
+<span class="sd">            models: List of models (uses all if None)</span>
+<span class="sd">            gpus: List of GPUs (uses all if None)</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            List of InferenceResult for all combinations</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">models</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">models</span> <span class="o">=</span> <span class="n">get_all_models</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">gpus</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">gpus</span> <span class="o">=</span> <span class="n">get_all_gpus</span><span class="p">()</span>
+
+        <span class="n">results</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">model</span> <span class="ow">in</span> <span class="n">models</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">gpu</span> <span class="ow">in</span> <span class="n">gpus</span><span class="p">:</span>
+                <span class="n">result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">evaluate_pair</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">gpu</span><span class="p">,</span> <span class="n">context_tokens</span><span class="p">)</span>
+                <span class="n">results</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">results</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="calculate_inference">
+<a class="viewcode-back" href="../api.html#calculator.calculate_inference">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">calculate_inference</span><span class="p">(</span><span class="n">context_tokens</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Main calculation function (simplified interface).</span>
+
+<span class="sd">    Função principal de cálculo (interface simplificada).</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        context_tokens: Context size in tokens</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        Dictionary with structured results</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">calculator</span> <span class="o">=</span> <span class="n">VRAMCalculator</span><span class="p">()</span>
+    <span class="n">results</span> <span class="o">=</span> <span class="n">calculator</span><span class="o">.</span><span class="n">calculate_all_combinations</span><span class="p">(</span><span class="n">context_tokens</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="p">{</span>
+        <span class="s2">&quot;context_tokens&quot;</span><span class="p">:</span> <span class="n">context_tokens</span><span class="p">,</span>
+        <span class="s2">&quot;quantization&quot;</span><span class="p">:</span> <span class="n">calculator</span><span class="o">.</span><span class="n">quantization</span><span class="o">.</span><span class="n">value</span><span class="p">,</span>
+        <span class="s2">&quot;results&quot;</span><span class="p">:</span> <span class="p">[</span><span class="n">r</span><span class="o">.</span><span class="n">to_dict</span><span class="p">()</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">results</span><span class="p">],</span>
+    <span class="p">}</span></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Local Inference Calculator.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
