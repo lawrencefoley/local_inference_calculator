@@ -41,18 +41,69 @@ python main.py -c 4096 --export-csv results.csv
 
 ## VRAM Calculation
 
-The tool uses a conservative estimation model:
+### How It Works
 
-1. **Model Parameters**: `params_billion × bytes_per_param`
-2. **Overhead**: `+30%` (runtime, activations)
-3. **KV Cache**: `(kv_cache_mb_per_token × context_tokens × multiplier) / 1024`
+The tool estimates VRAM requirements using a conservative model that accounts for four components:
 
-Bytes per parameter by precision:
+#### 1. Model Parameters
 
-- FP32: 4 bytes
-- FP16: 2 bytes (default)
-- INT8: 1 byte
-- INT4: 0.5 byte
+Base memory required to store the model weights:
+
+```
+params_memory_gb = (params_billion × bytes_per_param) / 1024
+```
+
+#### 2. Overhead
+
+Additional memory for runtime operations, activations, and framework overhead:
+
+```
+overhead_gb = params_memory_gb × 0.30  # 30% overhead
+```
+
+#### 3. KV Cache
+
+Memory for the attention cache during inference. This scales with context size:
+
+```
+kv_cache_gb = (kv_cache_mb_per_token × context_tokens × multiplier) / 1024
+```
+
+#### 4. Total VRAM
+
+```
+total_vram_gb = model_with_overhead_gb + kv_cache_gb
+```
+
+### Precision Impact
+
+| Precision | Bytes/Param | VRAM (7B model) | VRAM (70B model) |
+|-----------|-------------|-----------------|------------------|
+| FP32      | 4.0         | ~19 GB          | ~190 GB          |
+| FP16      | 2.0         | ~10 GB          | ~95 GB           |
+| INT8      | 1.0         | ~5 GB           | ~48 GB           |
+| INT4      | 0.5         | ~3 GB           | ~24 GB           |
+
+### KV Cache Multiplier
+
+KV cache memory varies by precision since some frameworks support quantized KV cache:
+
+| Precision | Multiplier |
+|-----------|------------|
+| FP32      | 2.0×       |
+| FP16      | 1.0× (baseline) |
+| INT8      | 0.6×       |
+| INT4      | 0.6×       |
+
+### Decision Logic
+
+A model × GPU combination is considered viable if:
+
+```
+total_vram_required ≤ gpu_vram_gb
+```
+
+A warning is issued if free VRAM is less than 10% (low safety margin).
 
 ## Project Structure
 
