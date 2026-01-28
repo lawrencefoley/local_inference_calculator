@@ -54,7 +54,8 @@ Command-Line Options
 
    python main.py [OPTIONS]
 
-Available options:
+Basic Options
+~~~~~~~~~~~~~
 
 .. code-block:: bash
 
@@ -69,6 +70,78 @@ Available options:
    --export-csv FILE     Export results to CSV
    --export-json FILE    Export results to JSON
    -q, --quantization Q  Model precision (fp32, fp16, int8, int4)
+   --mode MODE           Calculation mode (theoretical, conservative, production)
+
+Advanced Options (v0.2.0)
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+Layer Offload Optimization
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. code-block:: bash
+
+   --optimize-config      Show optimal layer offload configuration
+
+Calculates how many transformer layers can fit in GPU VRAM, displaying:
+
+* Layers on GPU vs CPU
+* Recommended ``--gpu-layers`` parameter for llama.cpp
+* Performance impact estimation
+* Offload options for all available GPUs
+
+CPU Offload Analysis
+^^^^^^^^^^^^^^^^^^^^^
+
+.. code-block:: bash
+
+   --cpu-offload          Enable CPU offload calculations
+   --system-ram GB        System RAM available in GB (default: 32.0)
+   --pcie-gen GEN         PCIe generation: 3.0, 4.0, or 5.0 (default: 4.0)
+
+Calculates hybrid GPU+CPU inference configuration:
+
+* System RAM requirements
+* PCIe bandwidth impact on performance
+* Estimated tokens/second
+* Layer distribution between GPU and CPU
+
+Multi-GPU Support
+^^^^^^^^^^^^^^^^^
+
+.. code-block:: bash
+
+   --multi-gpu            Enable multi-GPU mode
+   --gpu-config CONFIG    Multi-GPU configuration (e.g., "2x4090,1x3090")
+   --multi-gpu-mode MODE  Parallelism mode: tensor or pipeline (default: tensor)
+
+Configuration format:
+
+* Homogeneous: ``3x4090`` (3 identical GPUs)
+* Heterogeneous: ``2x4090,1x3090`` (mixed GPUs)
+* Partial names: ``2x3090,1x4090``
+
+Modes:
+
+* **tensor** - Model weights split across GPUs (same layers, different shards)
+* **pipeline** - Different layers on different GPUs
+
+Model Format Support
+^^^^^^^^^^^^^^^^^^^^^
+
+.. code-block:: bash
+
+   --gguf-file FILENAME  GGUF filename to auto-detect quantization
+   --format FORMAT        Model format: fp16, gguf, exl2, gptq, awq (default: fp16)
+
+GGUF auto-detection supports: Q2_K, Q3_K, Q4_K, Q5_K, Q6_K, Q8_0, F16, F32
+
+Format overhead multipliers:
+
+* FP16: 1.0x (baseline)
+* GGUF: 1.15x (+15% for metadata structure)
+* EXL2: 1.05x (+5% optimized layout)
+* GPTQ: 1.10x (+10% quantization metadata)
+* AWQ: 1.08x (+8% activation-aware quantization)
 
 
 Usage Examples

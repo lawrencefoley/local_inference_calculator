@@ -37,6 +37,71 @@ This shows:
 - Minimum and recommended GPU VRAM
 - List of compatible GPUs with free VRAM percentage
 
+### Advanced Configuration Options
+
+#### Layer Offload Optimization
+
+Calculate optimal GPU layer offload for models that don't fully fit in VRAM:
+
+```bash
+python main.py --model 70 --context 8192 --optimize-config --quantization int4
+```
+
+This shows:
+- How many layers can fit on GPU vs CPU
+- Recommended `--gpu-layers` parameter for llama.cpp
+- Performance impact estimation
+- Offload options for all available GPUs
+
+#### CPU Offload Analysis
+
+Calculate hybrid GPU+CPU inference configuration:
+
+```bash
+python main.py --model 70 --context 8192 --cpu-offload --system-ram 64 --pcie-gen 4.0
+```
+
+This shows:
+- System RAM requirements
+- PCIe bandwidth impact
+- Estimated tokens/second
+- Layer distribution between GPU and CPU
+
+#### Multi-GPU Configuration
+
+Calculate tensor parallelism or pipeline parallelism across multiple GPUs:
+
+```bash
+python main.py --params-b 405 --context 8192 --quantization int4 --multi-gpu --gpu-config "2x4090,1x3090"
+python main.py --params-b 405 --multi-gpu --gpu-config "3x3090" --multi-gpu-mode pipeline
+```
+
+Supported configurations:
+- Homogeneous: `3x4090` (3 identical GPUs)
+- Heterogeneous: `2x4090,1x3090` (mixed GPUs)
+- Modes: `tensor` (default), `pipeline`
+
+#### GGUF Format Support
+
+Auto-detect GGUF quantization from filename:
+
+```bash
+python main.py --gguf-file "llama-2-7b.Q4_K_M.gguf" --context 4096
+```
+
+Detected quantizations: Q2_K, Q3_K, Q4_K, Q5_K, Q6_K, Q8_0, F16, F32
+
+#### Model Format Selection
+
+Specify model format for accurate memory overhead:
+
+```bash
+python main.py --model 7 --context 8192 --format gguf --quantization int4
+python main.py --model 13 --context 8192 --format exl2
+```
+
+Supported formats: `fp16`, `gguf`, `exl2`, `gptq`, `awq`
+
 ### Basic (All Combinations)
 
 ```bash
@@ -227,7 +292,9 @@ A warning is issued if free VRAM is less than 10% (low safety margin).
 local_inference_calculator/
 ├── models.py      # LLM model database
 ├── gpus.py        # GPU database
-├── calculator.py  # VRAM calculation logic
+├── calculator.py  # VRAM calculation logic + Layer/CPU offload
+├── formats.py     # Model format definitions (GGUF, EXL2, etc.)
+├── multi_gpu.py   # Multi-GPU support (tensor/pipeline parallelism)
 ├── main.py        # CLI
 ├── docs/          # Documentation (Sphinx, multilingual)
 │   ├── en/        # English documentation
@@ -238,21 +305,30 @@ local_inference_calculator/
 
 ## Implemented Features
 
+### Core Features
 - [x] Support for FP32, FP16, INT8, INT4 quantization
-- [x] Consumer, datacenter, and Google Colab GPU database
+- [x] Consumer, datacenter, and Google Colab GPU database (40+ GPUs)
 - [x] Model-specific VRAM breakdown with real-world estimates
 - [x] Three calculation modes (theoretical, conservative, production)
 - [x] Explicit batch_size and calculation assumptions
 - [x] 24GB GPU limit warnings
 - [x] CSV/JSON export
 - [x] Production-ready KV cache estimation with mode-dependent buffers
-- [x] Sphinx-generated documentation
+- [x] Sphinx-generated bilingual documentation (English/Portuguese)
+
+### Advanced Features (New in v0.2.0)
+- [x] **Layer Offload Calculator**: Optimal GPU layer distribution
+- [x] **CPU Offload Calculator**: Hybrid GPU+CPU inference analysis
+- [x] **Multi-GPU Support**: Tensor and pipeline parallelism
+- [x] **GGUF Format**: Auto-detection and memory calculations
+- [x] **Model Format Support**: FP16, GGUF, EXL2, GPTQ, AWQ
+- [x] **PCIe Bandwidth Analysis**: Performance impact estimation
 
 ## Roadmap
 
-- [ ] Multi-GPU support
-- [ ] CPU offload
-- [ ] Support for specific model formats (GGUF, etc.)
+- [ ] Additional quantization formats (NF4, Marlin)
+- [ ] vLLM-specific memory calculations
+- [ ] Interactive web interface
 
 ## Documentation
 

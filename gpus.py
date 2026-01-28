@@ -9,7 +9,7 @@ Inclui GPUs consumer e datacenter com suas capacidades de VRAM.
 
 from dataclasses import dataclass
 from enum import Enum
-from typing import List
+from typing import List, Optional
 
 
 class GPUType(Enum):
@@ -33,6 +33,7 @@ class GPU:
         type: GPU type (consumer or datacenter)
         memory_bandwidth_gb_s: Memory bandwidth in GB/s (optional, for future calculations)
         architecture: GPU architecture name (optional, for information)
+        pcie_gen: Default PCIe generation (for CPU offload calculations)
     """
 
     name: str
@@ -42,6 +43,9 @@ class GPU:
     memory_bandwidth_gb_s: int | None = None
     # Opcional para info / Optional for information
     architecture: str | None = None
+    # Geração PCIe padrão (para cálculos de offload de CPU)
+    # Default PCIe generation (for CPU offload calculations)
+    pcie_gen: str = "4.0"
 
     @property
     def vram_label(self) -> str:

@@ -17,8 +17,17 @@ import sys
 from typing import List
 
 from models import LLMModel, get_all_models, get_model_by_size
-from gpus import GPU, get_all_gpus, get_consumer_gpus, get_datacenter_gpus
-from calculator import VRAMCalculator, Quantization, InferenceResult, Status, CalculationMode
+from gpus import GPU, get_all_gpus, get_consumer_gpus, get_datacenter_gpus, get_gpu_by_name
+from calculator import (
+    VRAMCalculator, Quantization, InferenceResult, Status, CalculationMode,
+    LayerOffloadCalculator, LayerOffloadResult,
+    CPUOffloadCalculator, CPUOffloadResult,
+)
+from formats import ModelFormat, detect_gguf_quantization, get_format_from_filename
+from multi_gpu import (
+    MultiGPUConfig, MultiGPUCalculator, MultiGPUMode,
+    parse_gpu_config_string, create_multi_gpu_config,
+)
 
 
 # Terminal colors for enhanced readability
@@ -189,6 +198,191 @@ def print_summary_by_model(results: List[InferenceResult]):
         if not_runnable:
             closest = min(not_runnable, key=lambda r: r.required_vram_gb - r.gpu_vram_gb)
             print(f"  ⚠️  Closest: / Mais próximo: {closest.gpu_name} (needs / precisa de {closest.required_vram_gb:.1f} GB)")
+
+
+def print_summary_by_gpu(results: List[InferenceResult]):
+    """Prints summary grouped by GPU.
+
+    Imprime resumo agrupado por GPU.
+
+    Shows for each GPU which models it supports.
+    Mostra para cada GPU quais modelos suporta.
+    """
+    print("\n" + "=" * 70)
+    print("SUMMARY BY GPU / RESUMO POR GPU")
+    print("=" * 70)
+
+    # Group by GPU
+    # Agrupar por GPU
+    from collections import defaultdict
+
+    by_gpu: dict[str, List[InferenceResult]] = defaultdict(list)
+    for r in results:
+        by_gpu[r.gpu_name].append(r)
+
+    # Sort GPUs by VRAM
+    # Ordenar GPUs por VRAM
+    gpu_vram = {r.gpu_name: r.gpu_vram_gb for r in results}
+    sorted_gpus = sorted(by_gpu.keys(), key=lambda g: gpu_vram[g])
+
+    for gpu_name in sorted_gpus:
+        gpu_results = by_gpu[gpu_name]
+        runnable = [r for r in gpu_results if r.status == Status.RUNS]
+
+        vram = gpu_results[0].gpu_vram_gb
+        print(f"\n{gpu_name} ({vram} GB):")
+
+        if runnable:
+            models = sorted(set(r.model_params_billion for r in runnable))
+            print(f"  ✓ Supports: / Suporta: {', '.join(f'{m}B' for m in models)}")
+        else:
+            print(f"  ✗ Doesn't support any listed model / Não suporta nenhum modelo listado")
+
+
+def print_layer_offload_result(result: LayerOffloadResult, model: LLMModel, gpu: GPU):
+    """Prints layer offload configuration result.
+
+    Imprime resultado da configuração de offload de camadas.
+
+    Args:
+        result: Layer offload calculation result
+        model: LLM model
+        gpu: GPU being used
+    """
+    print("\n" + "=" * 70)
+    print(f"{Colors.BOLD}OPTIMAL LAYER OFFLOAD CONFIGURATION{Colors.RESET}")
+    print("=" * 70)
+
+    print(f"\n{Colors.CYAN}Model:{Colors.RESET} {model.name} ({model.params_billion}B parameters)")
+    print(f"{Colors.CYAN}GPU:{Colors.RESET}   {gpu.name} ({gpu.vram_gb} GB VRAM)")
+    print(f"{Colors.CYAN}Total Layers:{Colors.RESET} {result.total_layers}")
+
+    print(f"\n{Colors.CYAN}Layer Distribution:{Colors.RESET}")
+    print(f"  Layers on GPU:  {Colors.ok(str(result.layers_on_gpu))}")
+    print(f"  Layers on CPU:  {Colors.warning(str(result.layers_on_cpu)) if result.layers_on_cpu > 0 else Colors.dim(str(result.layers_on_cpu))}")
+    print(f"  Offload Ratio:  {result.offload_ratio:.1%}")
+
+    print(f"\n{Colors.CYAN}Memory Usage:{Colors.RESET}")
+    print(f"  GPU VRAM used:  {result.gpu_vram_used:.2f} GB / {gpu.vram_gb} GB")
+    print(f"  CPU RAM used:   {result.cpu_ram_used:.2f} GB")
+    if gpu.vram_gb > 0:
+        gpu_util = (result.gpu_vram_used / gpu.vram_gb) * 100
+        print(f"  GPU utilization: {gpu_util:.1f}%")
+
+    print(f"\n{Colors.CYAN}Performance Impact:{Colors.RESET}")
+    if result.status == "full_gpu":
+        print(f"  {Colors.ok('✓ Full GPU acceleration - no performance impact')}")
+    elif result.status == "cpu_only":
+        print(f"  {Colors.error('✗ CPU only inference - ~10-20x slower')}")
+    else:
+        print(f"  Estimated slowdown: {Colors.warning(f'{result.performance_impact:.1f}%')}")
+        if result.performance_impact < 20:
+            print(f"  {Colors.info('Minimal impact - good for interactive use')}")
+        elif result.performance_impact < 50:
+            print(f"  {Colors.warning('Moderate impact - usable with some patience')}")
+        else:
+            print(f"  {Colors.error('Significant impact - consider more VRAM or smaller model')}")
+
+    print(f"\n{Colors.CYAN}Recommended Configuration:{Colors.RESET}")
+    print(f"  llama.cpp:  {Colors.bold(f'--gpu-layers {result.layers_on_gpu}')}")
+    print(f"  AutoGPTQ:   {Colors.bold(f'--gpu-memory {result.gpu_vram_used:.1f}G')}")
+
+    if result.status == "partial_offload":
+        print(f"\n{Colors.DIM}Note: Layers on CPU are accessed via PCIe, which is slower than GPU VRAM.{Colors.RESET}")
+        print(f"{Colors.DIM}      Consider quantization (INT4) to fit more layers on GPU.{Colors.RESET}")
+
+    print("=" * 70)
+
+
+def print_cpu_offload_result(result: CPUOffloadResult, model: LLMModel):
+    """Prints CPU offload configuration result.
+
+    Imprime resultado da configuração de offload de CPU.
+
+    Args:
+        result: CPU offload calculation result
+        model: LLM model
+    """
+    print("\n" + "=" * 70)
+    print(f"{Colors.BOLD}CPU OFFLOAD ANALYSIS{Colors.RESET}")
+    print("=" * 70)
+
+    print(f"\n{Colors.CYAN}System Requirements:{Colors.RESET}")
+    print(f"  System RAM required: {result.system_ram_required:.2f} GB")
+    print(f"  System RAM available: {result.system_ram_available:.2f} GB")
+    if result.fits_in_ram:
+        print(f"  Status: {Colors.ok('✓ Fits in system RAM')}")
+    else:
+        print(f"  Status: {Colors.error(f'✗ Need {result.system_ram_required - result.system_ram_available:.2f} GB more RAM')}")
+
+    print(f"\n{Colors.CYAN}PCIe Configuration:{Colors.RESET}")
+    print(f"  Generation: PCIe {result.pcie_generation}")
+    pcie_bandwidth = {"3.0": 12, "4.0": 24, "5.0": 48}.get(result.pcie_generation, 24)
+    print(f"  Bandwidth: ~{pcie_bandwidth} GB/s effective")
+
+    print(f"\n{Colors.CYAN}Performance Estimate:{Colors.RESET}")
+    print(f"  Token speed: ~{result.estimated_token_speed:.1f} tokens/second")
+    if result.speed_vs_full_gpu >= 0.8:
+        print(f"  Speed ratio: {Colors.ok(f'{result.speed_vs_full_gpu:.1%} of full GPU')}")
+    elif result.speed_vs_full_gpu >= 0.3:
+        print(f"  Speed ratio: {Colors.warning(f'{result.speed_vs_full_gpu:.1%} of full GPU')}")
+    else:
+        print(f"  Speed ratio: {Colors.error(f'{result.speed_vs_full_gpu:.1%} of full GPU')}")
+
+    # Print layer offload details
+    offload = result.offload_config
+    print(f"\n{Colors.CYAN}Layer Distribution:{Colors.RESET}")
+    print(f"  Layers on GPU:  {Colors.ok(str(offload.layers_on_gpu))}")
+    print(f"  Layers on CPU:  {Colors.warning(str(offload.layers_on_cpu)) if offload.layers_on_cpu > 0 else Colors.dim(str(offload.layers_on_cpu))}")
+    print(f"  Offload Ratio:  {offload.offload_ratio:.1%}")
+    print(f"  GPU VRAM used:  {offload.gpu_vram_used:.2f} GB")
+    print(f"  CPU RAM used:   {offload.cpu_ram_used:.2f} GB")
+
+    if offload.status == "partial_offload":
+        print(f"\n{Colors.DIM}Note: Layers on CPU are accessed via PCIe, which is slower than GPU VRAM.{Colors.RESET}")
+        print(f"{Colors.DIM}      Consider quantization (INT4) to fit more layers on GPU.{Colors.RESET}")
+
+    print("=" * 70)
+
+
+def print_multi_gpu_result(result, model: LLMModel):
+    """Prints multi-GPU configuration result.
+
+    Imprime resultado da configuração multi-GPU.
+
+    Args:
+        result: MultiGPUResult from MultiGPUCalculator
+        model: LLM model
+    """
+    print("\n" + "=" * 70)
+    print(f"{Colors.BOLD}MULTI-GPU CONFIGURATION{Colors.RESET}")
+    print("=" * 70)
+
+    print(f"\n{Colors.CYAN}Model:{Colors.RESET} {model.name} ({model.params_billion}B parameters)")
+
+    status_text = Colors.ok('RUNS') if result.status == 'runs' else Colors.error("DOESN'T RUN")
+    print(f"{Colors.CYAN}Status:{Colors.RESET} {status_text}")
+
+    if result.bottleneck_gpu:
+        print(f"  {Colors.warning(f'Bottleneck: {result.bottleneck_gpu}')}")
+    if result.communication_overhead_gb > 0:
+        print(f"  Communication overhead: {result.communication_overhead_gb:.2f} GB")
+
+    print(f"\n{Colors.CYAN}Per-GPU Allocation:{Colors.RESET}")
+    for gpu_name, alloc in result.per_gpu_allocation.items():
+        status = Colors.ok("✓") if alloc.vram_used_gb <= alloc.gpu.vram_gb else Colors.error("✗")
+        print(f"  {status} {gpu_name:<20} {alloc.vram_used_gb:6.2f} GB / {alloc.gpu.vram_gb} GB")
+
+        if alloc.layer_count > 0:
+            print(f"      Layers: {alloc.layer_count}")
+        if alloc.shard_ratio > 0:
+            print(f"      Shard: {alloc.shard_ratio:.1%}")
+
+    print(f"\n{Colors.CYAN}Framework Configuration:{Colors.RESET}")
+    for framework, config in result.recommended_framework_config.items():
+        print(f"  {framework}: {config}")
+
+    print("=" * 70)
 
 
 def print_summary_by_gpu(results: List[InferenceResult]):
@@ -545,6 +739,81 @@ Calculation modes / Modos de cálculo:
              "Modelo genérico: nome personalizado para exibição",
     )
 
+    # -----------------------------------------------------------------------
+    # NEW: Advanced configuration options
+    # NOVOS: Opções de configuração avançadas
+    # -----------------------------------------------------------------------
+
+    parser.add_argument(
+        "--optimize-config",
+        action="store_true",
+        help="Show optimal layer offload configuration / "
+             "Mostrar configuração ótima de offload de camadas",
+    )
+
+    parser.add_argument(
+        "--cpu-offload",
+        action="store_true",
+        help="Enable CPU offload calculations / "
+             "Habilitar cálculos de offload de CPU",
+    )
+
+    parser.add_argument(
+        "--system-ram",
+        type=float,
+        default=32.0,
+        metavar="GB",
+        help="System RAM available in GB (for CPU offload) / "
+             "RAM do sistema disponível em GB (para offload de CPU) (default: 32.0)",
+    )
+
+    parser.add_argument(
+        "--pcie-gen",
+        choices=["3.0", "4.0", "5.0"],
+        default="4.0",
+        help="PCIe generation for bandwidth estimation / "
+             "Geração PCIe para estimativa de largura de banda (default: 4.0)",
+    )
+
+    parser.add_argument(
+        "--multi-gpu",
+        action="store_true",
+        help="Enable multi-GPU mode / "
+             "Habilitar modo multi-GPU",
+    )
+
+    parser.add_argument(
+        "--gpu-config",
+        type=str,
+        metavar="CONFIG",
+        help="Multi-GPU configuration (e.g., '2x4090,1x3090') / "
+             "Configuração multi-GPU (ex: '2x4090,1x3090')",
+    )
+
+    parser.add_argument(
+        "--multi-gpu-mode",
+        choices=["tensor", "pipeline"],
+        default="tensor",
+        help="Multi-GPU parallelism mode / "
+             "Modo de paralelismo multi-GPU (default: tensor)",
+    )
+
+    parser.add_argument(
+        "--gguf-file",
+        type=str,
+        metavar="FILENAME",
+        help="GGUF filename to auto-detect quantization / "
+             "Nome de arquivo GGUF para auto-detectar quantização",
+    )
+
+    parser.add_argument(
+        "--format",
+        choices=["fp16", "gguf", "exl2", "gptq", "awq"],
+        default="fp16",
+        help="Model format for overhead calculation / "
+             "Formato do modelo para cálculo de overhead (default: fp16)",
+    )
+
     return parser.parse_args()
 
 
@@ -567,8 +836,8 @@ def main():
               file=sys.stderr)
         sys.exit(1)
 
-    # Map quantization
-    # Mapear quantização
+    # Map quantization (needed early for GGUF detection)
+    # Mapear quantização (necessário cedo para detecção GGUF)
     quant_map = {
         "fp32": Quantization.FP32,
         "fp16": Quantization.FP16,
@@ -585,6 +854,89 @@ def main():
         "production": CalculationMode.PRODUCTION,
     }
     calculation_mode = mode_map[args.mode]
+
+    # Map model format
+    # Mapear formato do modelo
+    format_map = {
+        "fp16": ModelFormat.FP16,
+        "gguf": ModelFormat.GGUF,
+        "exl2": ModelFormat.EXL2,
+        "gptq": ModelFormat.GPTQ,
+        "awq": ModelFormat.AWQ,
+    }
+    model_format = format_map[args.format]
+
+    # Handle GGUF auto-detection
+    # Lidar com auto-detecção GGUF
+    if args.gguf_file:
+        gguf_info = detect_gguf_quantization(args.gguf_file)
+        if gguf_info.is_gguf:
+            print(f"\n{Colors.info('GGUF file detected:')} {args.gguf_file}")
+            print(f"  Quantization: {gguf_info.quant_name}")
+            print(f"  Effective bits: {gguf_info.bits_per_param:.2f} bits/param")
+            # Update quantization based on GGUF detection
+            if gguf_info.quant_type != "fp16":
+                quantization = quant_map[gguf_info.quant_type]
+                print(f"  Using quantization: {quantization.value}")
+            model_format = ModelFormat.GGUF
+
+    # -----------------------------------------------------------------------
+    # Handle advanced configuration modes
+    # Lidar com modos de configuração avançados
+    # -----------------------------------------------------------------------
+
+    # Multi-GPU mode
+    # Modo multi-GPU
+    if args.multi_gpu and args.gpu_config:
+        try:
+            multi_gpus = parse_gpu_config_string(args.gpu_config, get_all_gpus())
+
+            # Get or create model
+            model = None
+            if args.params_b is not None:
+                kv_cache = args.kv_cache if args.kv_cache else estimate_kv_cache(args.params_b)
+                model_name = args.model_name if args.model_name else f"Custom Model {args.params_b}B"
+                model = LLMModel(
+                    name=model_name,
+                    params_billion=args.params_b,
+                    architecture="decoder-only",
+                    precision_default="fp16",
+                    kv_cache_mb_per_token=kv_cache,
+                    format=model_format,
+                )
+            elif args.model:
+                model = get_model_by_size(args.model)
+                if not model:
+                    kv_cache = estimate_kv_cache(args.model)
+                    model = LLMModel(
+                        name=f"Generic Model {args.model}B",
+                        params_billion=args.model,
+                        architecture="decoder-only",
+                        precision_default="fp16",
+                        kv_cache_mb_per_token=kv_cache,
+                        format=model_format,
+                    )
+
+            if not model:
+                print("Error: Please specify --model or --params-b with --multi-gpu", file=sys.stderr)
+                sys.exit(1)
+
+            # Create multi-GPU config
+            mode_map_gpu = {"tensor": MultiGPUMode.TENSOR_PARALLEL, "pipeline": MultiGPUMode.PIPELINE_PARALLEL}
+            multi_gpu_mode = mode_map_gpu[args.multi_gpu_mode]
+            config = MultiGPUConfig(gpus=multi_gpus, mode=multi_gpu_mode)
+
+            # Calculate
+            calc = MultiGPUCalculator(quantization=quantization, model_format=model_format)
+            result = calc.calculate(model, config, args.context)
+
+            # Print result
+            print_multi_gpu_result(result, model)
+            sys.exit(0)
+
+        except ValueError as e:
+            print(f"Error parsing GPU config: {e}", file=sys.stderr)
+            sys.exit(1)
 
     # Handle --model (specific model) or --params-b (generic model)
     # Lidar com --model (modelo específico) ou --params-b (modelo genérico)
@@ -632,6 +984,47 @@ def main():
         # Show VRAM breakdown for the specific model
         print_model_vram_breakdown(model, args.context, quantization, calculation_mode)
 
+        # Determine which GPU to use for advanced calculations
+        target_gpu = None
+        if args.optimize_config or args.cpu_offload:
+            # Use largest GPU or allow user to specify via --gpu flag
+            # For now, use the largest available GPU
+            gpus = get_all_gpus()
+            target_gpu = max(gpus, key=lambda g: g.vram_gb)
+
+            # For CPU offload, get target GPU from user or default to largest
+            if args.cpu_offload:
+                cpu_calc = CPUOffloadCalculator(
+                    quantization=quantization,
+                    system_ram_gb=args.system_ram,
+                    pcie_generation=args.pcie_gen,
+                    model_format=model_format,
+                )
+                cpu_result = cpu_calc.calculate_offload(model, target_gpu, args.context)
+                print_cpu_offload_result(cpu_result, model)
+                sys.exit(0)
+
+            # For layer offload optimization
+            if args.optimize_config:
+                layer_calc = LayerOffloadCalculator(
+                    quantization=quantization,
+                    model_format=model_format,
+                )
+                layer_result = layer_calc.calculate_optimal_offload(model, target_gpu, args.context)
+                print_layer_offload_result(layer_result, model, target_gpu)
+
+                # Show offload options for all GPUs
+                print(f"\n{Colors.CYAN}Offload Options for All GPUs:{Colors.RESET}")
+                for gpu in sorted(get_all_gpus(), key=lambda g: g.vram_gb, reverse=True):
+                    result = layer_calc.calculate_optimal_offload(model, gpu, args.context)
+                    status_color = Colors.ok if result.status == "full_gpu" else Colors.warning
+                    print(f"  {gpu.name:<25} ({gpu.vram_gb:3} GB): "
+                          f"{result.layers_on_gpu}/{result.total_layers} layers on GPU "
+                          f"({status_color(result.status)}){Colors.RESET}")
+
+                print("\n" + "=" * 70)
+                sys.exit(0)
+
         # Show which GPUs can run this model
         gpus = get_all_gpus()
         calculator = VRAMCalculator(quantization=quantization, calculation_mode=calculation_mode)
@@ -659,6 +1052,10 @@ def main():
             for r in sorted_by_need:
                 print(f"  {r.gpu_name:<25} ({r.gpu_vram_gb:3} GB) - "
                       f"needs {r.required_vram_gb:.1f} GB")
+
+            # Suggest layer offload option
+            print(f"\n{Colors.info('💡 Tip: Use --optimize-config to see layer offload options')}")
+            print(f"{Colors.dim('   Some layers can run on GPU while others use system RAM.')}")
 
         print("\n" + "=" * 70)
         sys.exit(0)

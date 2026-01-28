@@ -160,3 +160,196 @@ You can also use the library directly in Python:
    print(f"Status: {result.status.value}")
    print(f"VRAM required: {result.required_vram_gb:.1f} GB")
    print(f"VRAM available: {result.gpu_vram_gb} GB")
+
+---
+Advanced Examples (v0.2.0)
+--------------------------
+
+Example 9: Layer Offload Optimization
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Calculate optimal GPU layer distribution for a model that doesn't fully fit in VRAM:
+
+.. code-block:: bash
+
+   python main.py --model 70 --context 8192 --optimize-config --quantization int4
+
+Output:
+
+.. code-block:: text
+
+   OPTIMAL LAYER OFFLOAD CONFIGURATION
+   ======================================================================
+   Model: LLaMA 2 70B / LLaMA 3.1 70B (70B parameters)
+   GPU:   RTX 3090 (24 GB VRAM)
+   Total Layers: 80
+
+   Layer Distribution:
+     Layers on GPU:  0
+     Layers on CPU:  80
+     Offload Ratio:  0.0%
+
+   Memory Usage:
+     GPU VRAM used:  32.50 GB / 24 GB
+     CPU RAM used:   45.00 GB
+
+   Performance Impact:
+     Estimated slowdown: 1000%
+
+   Recommended Configuration:
+     llama.cpp:  --gpu-layers 0
+     AutoGPTQ:   --gpu-memory 32.5G
+
+For GPUs with more VRAM, you'll see partial offload options.
+
+---
+Example 10: CPU Offload Analysis
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Analyze hybrid GPU+CPU inference with PCIe bandwidth considerations:
+
+.. code-block:: bash
+
+   python main.py --model 13 --context 8192 --cpu-offload --system-ram 64 --pcie-gen 4.0
+
+Output:
+
+.. code-block:: text
+
+   CPU OFFLOAD ANALYSIS
+   ======================================================================
+   System Requirements:
+     System RAM required: 8.50 GB
+     System RAM available: 64.00 GB
+     Status: ✓ Fits in system RAM
+
+   PCIe Configuration:
+     Generation: PCIe 4.0
+     Bandwidth: ~24 GB/s effective
+
+   Performance Estimate:
+     Token speed: ~35.0 tokens/second
+     Speed ratio: 100.0% of full GPU
+
+   Layer Distribution:
+     Layers on GPU:  40
+     Layers on CPU:  0
+     Offload Ratio:  100.0%
+
+PCIe generation impact:
+
+* **PCIe 3.0**: ~12 GB/s effective (slower data transfer)
+* **PCIe 4.0**: ~24 GB/s effective (standard for modern GPUs)
+* **PCIe 5.0**: ~48 GB/s effective (best for CPU offload)
+
+---
+Example 11: Multi-GPU Configuration
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Calculate tensor parallelism across multiple GPUs:
+
+.. code-block:: bash
+
+   python main.py --params-b 405 --context 8192 --quantization int4 --multi-gpu --gpu-config "2x4090,1x3090"
+
+Output:
+
+.. code-block:: text
+
+   MULTI-GPU CONFIGURATION
+   ======================================================================
+   Model: Custom Model 405B (405B parameters)
+   Status: DOESN'T RUN
+     Bottleneck: RTX 3090
+     Communication overhead: 5.28 GB
+
+   Per-GPU Allocation:
+     ✗ RTX 4090              25.32 GB / 24 GB
+       Shard: 50.0%
+
+   Framework Configuration:
+     tensor_parallel_size: 3
+     mode: tensor_parallel
+     vllm: --tensor-parallel-size 3
+
+Heterogeneous configurations (mixed GPU models) are supported.
+Each GPU's allocation is proportional to its VRAM capacity.
+
+---
+Example 12: GGUF Auto-Detection
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Auto-detect quantization from GGUF filename:
+
+.. code-block:: bash
+
+   python main.py --gguf-file "llama-2-7b.Q4_K_M.gguf" --context 4096
+
+Output:
+
+.. code-block:: text
+
+   GGUF file detected: llama-2-7b.Q4_K_M.gguf
+     Quantization: Q4_K_M
+     Effective bits: 5.50 bits/param
+     Using quantization: int4
+
+Supported GGUF quantizations:
+
+* Q2_K, Q2_K_S, Q2_K_M, Q2_K_L (~3-4 bits effective)
+* Q3_K, Q3_K_S, Q3_K_M, Q3_K_L, Q3_K_XS (~4-5 bits)
+* Q4_K, Q4_K_S, Q4_K_M, Q4_0, Q4_1 (~5 bits)
+* Q5_K, Q5_K_S, Q5_K_M, Q5_0, Q5_1 (~6 bits)
+* Q6_K (~7 bits)
+* Q8_0 (8 bits)
+* F16, F32 (floating point)
+
+---
+Example 13: Model Format Comparison
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Compare VRAM requirements across different model formats:
+
+.. code-block:: bash
+
+   python main.py --model 7 --context 8192 --format fp16
+   python main.py --model 7 --context 8192 --format gguf
+   python main.py --model 7 --context 8192 --format exl2
+
+Format overhead is automatically applied to calculations.
+
+---
+Advanced Programmatic Usage
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Using the advanced calculators programmatically:
+
+.. code-block:: python
+
+   from calculator import LayerOffloadCalculator, CPUOffloadCalculator
+   from multi_gpu import MultiGPUCalculator, MultiGPUConfig, MultiGPUMode
+   from formats import detect_gguf_quantization
+   from models import get_model_by_size
+   from gpus import get_all_gpus
+
+   # Layer offload calculation
+   layer_calc = LayerOffloadCalculator(quantization=Quantization.INT4)
+   model = get_model_by_size(70)
+   gpu = get_all_gpus()[0]  # RTX 3060
+
+   result = layer_calc.calculate_optimal_offload(model, gpu, context_tokens=8192)
+   print(f"Layers on GPU: {result.layers_on_gpu}/{result.total_layers}")
+   print(f"Recommended: --gpu-layers {result.layers_on_gpu}")
+
+   # Multi-GPU calculation
+   multi_calc = MultiGPUCalculator(quantization=Quantization.INT4)
+   config = MultiGPUConfig(
+       gpus=[gpu1, gpu2, gpu3],
+       mode=MultiGPUMode.TENSOR_PARALLEL
+   )
+   result = multi_calc.calculate(model, config, context_tokens=8192)
+
+   # GGUF detection
+   gguf_info = detect_gguf_quantization("llama-2-7b.Q4_K_M.gguf")
+   print(f"Quantization: {gguf_info.quant_name}")
+   print(f"Effective bits: {gguf_info.bits_per_param}")

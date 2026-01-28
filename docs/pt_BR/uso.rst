@@ -56,7 +56,8 @@ Opções de Linha de Comando
 
    python main.py [OPTIONS]
 
-Opções disponíveis:
+Opções Básicas
+~~~~~~~~~~~~~~
 
 .. code-block:: bash
 
@@ -71,6 +72,78 @@ Opções disponíveis:
    --export-csv FILE     Exporta resultados para CSV
    --export-json FILE    Exporta resultados para JSON
    -q, --quantization Q  Precisão do modelo (fp32, fp16, int8, int4)
+   --mode MODE           Modo de cálculo (theoretical, conservative, production)
+
+Opções Avançadas (v0.2.0)
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Otimização de Offload de Camadas
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. code-block:: bash
+
+   --optimize-config      Mostrar configuração ótima de offload de camadas
+
+Calcula quantas camadas transformer cabem na VRAM da GPU, exibindo:
+
+* Camadas na GPU vs CPU
+* Parâmetro ``--gpu-layers`` recomendado para llama.cpp
+* Estimativa de impacto na performance
+* Opções de offload para todas as GPUs disponíveis
+
+Análise de Offload de CPU
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. code-block:: bash
+
+   --cpu-offload          Habilitar cálculos de offload de CPU
+   --system-ram GB        RAM do sistema disponível em GB (padrão: 32.0)
+   --pcie-gen GEN         Geração PCIe: 3.0, 4.0 ou 5.0 (padrão: 4.0)
+
+Calcula configuração de inferência híbrida GPU+CPU:
+
+* Requisitos de RAM do sistema
+* Impacto da largura de banda PCIe na performance
+* Estimativa de tokens/segundo
+* Distribuição de camadas entre GPU e CPU
+
+Suporte Multi-GPU
+^^^^^^^^^^^^^^^^^
+
+.. code-block:: bash
+
+   --multi-gpu            Habilitar modo multi-GPU
+   --gpu-config CONFIG    Configuração multi-GPU (ex: "2x4090,1x3090")
+   --multi-gpu-mode MODE  Modo de paralelismo: tensor ou pipeline (padrão: tensor)
+
+Formato de configuração:
+
+* Homogênea: ``3x4090`` (3 GPUs idênticas)
+* Heterogênea: ``2x4090,1x3090`` (GPUs mistas)
+* Nomes parciais: ``2x3090,1x4090``
+
+Modos:
+
+* **tensor** - Pesos do modelo divididos entre GPUs (mesmas camadas, shards diferentes)
+* **pipeline** - Camadas diferentes em GPUs diferentes
+
+Suporte a Formatos de Modelo
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. code-block:: bash
+
+   --gguf-file ARQUIVO    Nome do arquivo GGUF para auto-detectar quantização
+   --format FORMATO        Formato do modelo: fp16, gguf, exl2, gptq, awq (padrão: fp16)
+
+Auto-detecção GGUF suporta: Q2_K, Q3_K, Q4_K, Q5_K, Q6_K, Q8_0, F16, F32
+
+Multiplicadores de overhead por formato:
+
+* FP16: 1.0x (linha de base)
+* GGUF: 1.15x (+15% para estrutura de metadados)
+* EXL2: 1.05x (+5% layout otimizado)
+* GPTQ: 1.10x (+10% metadados de quantização)
+* AWQ: 1.08x (+8% quantização activation-aware)
 
 
 Exemplos de Uso

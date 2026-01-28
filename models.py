@@ -9,8 +9,10 @@ Cada modelo possui metadados para cálculo de uso de VRAM em inferência.
 Inclui modelos da biblioteca Ollama para cobertura abrangente.
 """
 
-from dataclasses import dataclass
-from typing import List
+from dataclasses import dataclass, field
+from typing import List, Optional
+
+from formats import ModelFormat, Quantization as FormatQuantization
 
 
 @dataclass(frozen=True)
@@ -25,6 +27,9 @@ class LLMModel:
         architecture: Model architecture (e.g., "decoder-only")
         precision_default: Default precision (e.g., "fp16")
         kv_cache_mb_per_token: KV cache in MB per token (conservative FP16 estimate)
+        format: Model format (defaults to FP16 for base models)
+        context_length_max: Maximum context length in tokens (None if unlimited)
+        num_layers: Number of transformer layers (for layer offload calculations)
     """
 
     name: str
@@ -34,6 +39,15 @@ class LLMModel:
     # KV cache em MB por token (estimativa conservadora para FP16)
     # KV cache in MB per token (conservative FP16 estimate)
     kv_cache_mb_per_token: float
+    # Model format (optional, defaults to FP16)
+    # Formato do modelo (opcional, padrão FP16)
+    format: ModelFormat = field(default=ModelFormat.FP16)
+    # Maximum context length in tokens (None if unlimited)
+    # Comprimento máximo de contexto em tokens (None se ilimitado)
+    context_length_max: Optional[int] = None
+    # Number of transformer layers (for layer offload calculations, estimated if None)
+    # Número de camadas transformer (para cálculos de offload de camadas, estimado se None)
+    num_layers: Optional[int] = None
 
     @property
     def size_label(self) -> str:
@@ -42,6 +56,37 @@ class LLMModel:
         Retorna label simplificado do tamanho (ex: '7B', '13B').
         """
         return f"{self.params_billion}B"
+
+    @property
+    def estimated_layers(self) -> int:
+        """Estimate number of layers based on model size if not specified.
+
+        Estima número de camadas baseado no tamanho do modelo se não especificado.
+
+        Uses typical layer counts for decoder-only models:
+        - 7B models: ~32 layers
+        - 13B models: ~40 layers
+        - 30B+ models: ~60+ layers
+        """
+        if self.num_layers is not None:
+            return self.num_layers
+
+        # Conservative layer estimation based on parameter count
+        if self.params_billion <= 1:
+            return 12
+        elif self.params_billion <= 3:
+            return 24
+        elif self.params_billion <= 7:
+            return 32
+        elif self.params_billion <= 13:
+            return 40
+        elif self.params_billion <= 30:
+            return 48
+        elif self.params_billion <= 70:
+            return 80
+        else:
+            # For very large models, estimate based on sqrt of params
+            return int(80 * (self.params_billion / 70) ** 0.5)
 
 
 # ============================================================================
