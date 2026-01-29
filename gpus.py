@@ -171,6 +171,52 @@ GPUS: List[GPU] = [
     ),
 
     # ============================================================
+    # CONSUMER GPUs - NVIDIA GeForce RTX 50 Series
+    # ============================================================
+    GPU(
+        name="RTX 5050",
+        vram_gb=8,
+        type=GPUType.CONSUMER,
+        architecture="Blackwell",
+    ),
+    GPU(
+        name="RTX 5060",
+        vram_gb=8,
+        type=GPUType.CONSUMER,
+        architecture="Blackwell",
+    ),
+    GPU(
+        name="RTX 5060 Ti",
+        vram_gb=16,
+        type=GPUType.CONSUMER,
+        architecture="Blackwell",
+    ),
+    GPU(
+        name="RTX 5070",
+        vram_gb=12,
+        type=GPUType.CONSUMER,
+        architecture="Blackwell",
+    ),
+    GPU(
+        name="RTX 5070 Ti",
+        vram_gb=16,
+        type=GPUType.CONSUMER,
+        architecture="Blackwell",
+    ),
+    GPU(
+        name="RTX 5080",
+        vram_gb=16,
+        type=GPUType.CONSUMER,
+        architecture="Blackwell",
+    ),
+    GPU(
+        name="RTX 5090",
+        vram_gb=32,
+        type=GPUType.CONSUMER,
+        architecture="Blackwell",
+    ),
+
+    # ============================================================
     # CONSUMER GPUs - AMD Radeon RX 7000 Series
     # ============================================================
     GPU(
