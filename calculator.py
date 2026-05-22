@@ -221,7 +221,7 @@ class VRAMCalculator:
         self.overhead_factor = overhead_factor
         self.calculation_mode = calculation_mode
 
-    def calculate_params_memory(self, params_billion: int) -> float:
+    def calculate_params_memory(self, params_billion: float) -> float:
         """Calculate base memory for model parameters.
 
         Calcula memória base dos parâmetros do modelo.
@@ -303,6 +303,25 @@ class VRAMCalculator:
         kv_cache_mb = kv_cache_mb_per_token * context_tokens * multiplier * mode_buffer
         kv_cache_gb = kv_cache_mb / 1024
         return kv_cache_gb
+
+    def calculate_max_context_tokens(self, model: LLMModel, available_vram_gb: float) -> int:
+        """Calculate the largest context length that fits in available VRAM."""
+        params_memory_gb = self.calculate_params_memory(model.params_billion)
+        fixed_vram_gb = params_memory_gb + self.calculate_overhead(params_memory_gb)
+        available_for_kv_gb = available_vram_gb - fixed_vram_gb
+        if available_for_kv_gb <= 0 or model.kv_cache_mb_per_token <= 0:
+            return 0
+
+        mode_buffer = {
+            CalculationMode.THEORETICAL: 1.0,
+            CalculationMode.CONSERVATIVE: 1.1,
+            CalculationMode.PRODUCTION: 1.25,
+        }.get(self.calculation_mode, 1.0)
+        kv_mb_per_token = model.kv_cache_mb_per_token * self.quantization.kv_cache_multiplier * mode_buffer
+        max_context = int((available_for_kv_gb * 1024) / kv_mb_per_token)
+        if model.context_length_max is not None:
+            return min(max_context, model.context_length_max)
+        return max_context
 
     def calculate_total_vram(
         self,

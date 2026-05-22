@@ -364,6 +364,48 @@ def print_cpu_offload_result(result: CPUOffloadResult, model: LLMModel):
     print("=" * 70)
 
 
+def print_max_context_table(
+    models: list[LLMModel],
+    calculator: VRAMCalculator,
+    available_vram_gb: float,
+    quantization: Quantization,
+    calculation_mode: CalculationMode,
+):
+    """Print max context length for models that fit within a VRAM budget."""
+    rows = []
+    for model in models:
+        max_context = calculator.calculate_max_context_tokens(model, available_vram_gb)
+        if max_context > 0:
+            capped = model.context_length_max is not None and max_context == model.context_length_max
+            rows.append((model, max_context, capped))
+
+    rows.sort(key=lambda row: (row[0].params_billion, row[0].name))
+
+    print("\n" + "=" * 90)
+    print(
+        f"MAX CONTEXT BY MODEL ({available_vram_gb:g} GB VRAM, {quantization.value.upper()}, {calculation_mode.value})"
+    )
+    print("=" * 90)
+
+    if not rows:
+        print("\nNo listed models fit in the specified VRAM budget.")
+        print("=" * 90)
+        return
+
+    header = f"{'Model':<55} {'Params':>8} {'KV MB/tok':>10} {'Max Context':>14}"
+    print(f"\n{header}")
+    print("-" * len(header))
+    for model, max_context, capped in rows:
+        context_label = f"{max_context:,}{'*' if capped else ''}"
+        print(
+            f"{model.name[:55]:<55} {model.params_billion:>7g}B {model.kv_cache_mb_per_token:>10.4f} {context_label:>14}"
+        )
+
+    if any(capped for _, _, capped in rows):
+        print("\n* Limited by model config max context length.")
+    print("=" * 90)
+
+
 def print_multi_gpu_result(result, model: LLMModel):
     """Prints multi-GPU configuration result.
 
@@ -736,6 +778,12 @@ def create_model_from_config_json(
 )
 @click.option("--kv-cache", type=float, metavar="MB_PER_TOKEN", help="Generic model: KV cache in MB per token FP16")
 @click.option(
+    "--vram-gb",
+    type=float,
+    metavar="GB",
+    help="VRAM budget to calculate each model's maximum context length",
+)
+@click.option(
     "--config-json",
     type=click.Path(exists=True, dir_okay=False, path_type=Path),
     metavar="FILE",
@@ -797,6 +845,8 @@ def cli(**kwargs):
       local-inference-calculator --params-b 405 --context 8192 --quantization int4
 
       local-inference-calculator --config-json path/to/config.json --params-b 7 --context 8192
+
+      local-inference-calculator --vram-gb 24 --quantization int4
     """
     kwargs["format"] = kwargs.pop("model_format_name")
     run(SimpleNamespace(**kwargs))
@@ -862,6 +912,67 @@ def run(args: SimpleNamespace) -> None:
                 quantization = quant_map[gguf_info.quant_type]
                 print(f"  Using quantization: {quantization.value}")
             model_format = ModelFormat.GGUF
+
+    if args.vram_gb is not None:
+        if args.vram_gb <= 0:
+            print("Error: --vram-gb must be positive", file=sys.stderr)
+            sys.exit(1)
+
+        try:
+            if args.config_json:
+                vram_model = create_model_from_config_json(
+                    args.config_json,
+                    params_billion=args.params_b,
+                    model_name=args.model_name,
+                    model_format=model_format,
+                )
+                if args.kv_cache:
+                    vram_model = LLMModel(
+                        name=vram_model.name,
+                        params_billion=vram_model.params_billion,
+                        architecture=vram_model.architecture,
+                        precision_default=vram_model.precision_default,
+                        kv_cache_mb_per_token=args.kv_cache,
+                        format=vram_model.format,
+                        context_length_max=vram_model.context_length_max,
+                        num_layers=vram_model.num_layers,
+                    )
+                vram_models = [vram_model]
+            elif args.params_b is not None:
+                kv_cache = args.kv_cache if args.kv_cache else estimate_kv_cache(args.params_b)
+                model_name = args.model_name if args.model_name else f"Custom Model {args.params_b:g}B"
+                vram_models = [
+                    LLMModel(
+                        name=model_name,
+                        params_billion=args.params_b,
+                        architecture="decoder-only",
+                        precision_default="fp16",
+                        kv_cache_mb_per_token=kv_cache,
+                        format=model_format,
+                    )
+                ]
+            elif args.model:
+                db_model = get_model_by_size(args.model)
+                if db_model is None:
+                    kv_cache = args.kv_cache if args.kv_cache else estimate_kv_cache(args.model)
+                    db_model = LLMModel(
+                        name=f"Generic Model {args.model:g}B",
+                        params_billion=args.model,
+                        architecture="decoder-only",
+                        precision_default="fp16",
+                        kv_cache_mb_per_token=kv_cache,
+                        format=model_format,
+                    )
+                vram_models = [db_model]
+            else:
+                vram_models = get_all_models()
+        except (OSError, json.JSONDecodeError, ValueError) as e:
+            print(f"Error parsing config.json: {e}", file=sys.stderr)
+            sys.exit(1)
+
+        calculator = VRAMCalculator(quantization=quantization, calculation_mode=calculation_mode)
+        print_max_context_table(vram_models, calculator, args.vram_gb, quantization, calculation_mode)
+        sys.exit(0)
 
     # -----------------------------------------------------------------------
     # Handle advanced configuration modes

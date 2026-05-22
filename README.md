@@ -53,6 +53,17 @@ This shows:
 - Minimum and recommended GPU VRAM
 - List of compatible GPUs with free VRAM percentage
 
+### Find Max Context for a VRAM Budget
+
+Use `--vram-gb` with a quantization to see which models fit and their estimated maximum context:
+
+```bash
+uv run local-inference-calculator --vram-gb 24 --quantization int4
+uv run local-inference-calculator --vram-gb 16 --quantization fp16 --mode conservative
+```
+
+You can combine it with `--model`, `--params-b`, or `--config-json` to check a single model.
+
 ### Add a Model from Hugging Face `config.json`
 
 You can derive model metadata, including KV cache MB/token, from a Hugging Face `config.json`:

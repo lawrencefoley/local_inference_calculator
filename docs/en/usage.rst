@@ -47,6 +47,18 @@ Or with a larger context:
    uv run local-inference-calculator -c 8192
 
 
+Max Context for a VRAM Budget
+-----------------------------
+
+Use ``--vram-gb`` with a quantization to see which models fit and their estimated maximum context:
+
+.. code-block:: bash
+
+   uv run local-inference-calculator --vram-gb 24 --quantization int4
+   uv run local-inference-calculator --vram-gb 16 --quantization fp16 --mode conservative
+
+Combine it with ``--model``, ``--params-b``, or ``--config-json`` to check a single model.
+
 Hugging Face config.json
 ------------------------
 

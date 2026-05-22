@@ -33,6 +33,15 @@ def test_calculate_kv_cache_from_config() -> None:
     assert kv_cache == 0.125
 
 
+def test_vram_gb_command() -> None:
+    result = CliRunner().invoke(cli, ["--vram-gb", "24", "--quantization", "int4"])
+
+    assert result.exit_code == 0
+    assert "MAX CONTEXT BY MODEL" in result.output
+    assert "24 GB VRAM, INT4" in result.output
+    assert "Max Context" in result.output
+
+
 def test_config_json_command(tmp_path) -> None:
     config_path = tmp_path / "config.json"
     config_path.write_text(
@@ -57,3 +66,29 @@ def test_config_json_command(tmp_path) -> None:
     assert result.exit_code == 0
     assert "Loaded model metadata from config.json" in result.output
     assert "KV cache: 0.1250 MB/token" in result.output
+
+
+def test_config_json_vram_gb_command(tmp_path) -> None:
+    config_path = tmp_path / "config.json"
+    config_path.write_text(
+        json.dumps(
+            {
+                "_name_or_path": "example/model",
+                "architectures": ["LlamaForCausalLM"],
+                "num_hidden_layers": 32,
+                "hidden_size": 4096,
+                "num_attention_heads": 32,
+                "num_key_value_heads": 8,
+                "max_position_embeddings": 8192,
+            }
+        )
+    )
+
+    result = CliRunner().invoke(
+        cli,
+        ["--config-json", str(config_path), "--params-b", "7", "--vram-gb", "24", "--quantization", "int4"],
+    )
+
+    assert result.exit_code == 0
+    assert "example/model" in result.output
+    assert "8,192*" in result.output
