@@ -53,6 +53,16 @@ This shows:
 - Minimum and recommended GPU VRAM
 - List of compatible GPUs with free VRAM percentage
 
+### Add a Model from Hugging Face `config.json`
+
+You can derive model metadata, including KV cache MB/token, from a Hugging Face `config.json`:
+
+```bash
+uv run local-inference-calculator --config-json path/to/config.json --params-b 7 --context 8192
+```
+
+The parser reads common fields such as `num_hidden_layers`, `hidden_size`, `num_attention_heads`, and `num_key_value_heads`. If the config does not include a parameter count, pass it with `--params-b`. Use `--model-name` to override the display name.
+
 ### Advanced Configuration Options
 
 #### Layer Offload Optimization

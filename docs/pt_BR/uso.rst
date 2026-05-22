@@ -49,6 +49,17 @@ Ou com contexto maior:
    uv run local-inference-calculator -c 8192
 
 
+Hugging Face config.json
+------------------------
+
+Derive metadados de KV cache a partir de um ``config.json`` do Hugging Face:
+
+.. code-block:: bash
+
+   uv run local-inference-calculator --config-json path/to/config.json --params-b 7 --context 8192
+
+Se o config não incluir a contagem de parâmetros, informe com ``--params-b``. Use ``--model-name`` para sobrescrever o nome exibido.
+
 Opções de Linha de Comando
 ---------------------------
 

@@ -47,6 +47,17 @@ Or with a larger context:
    uv run local-inference-calculator -c 8192
 
 
+Hugging Face config.json
+------------------------
+
+Derive KV cache metadata from a Hugging Face ``config.json``:
+
+.. code-block:: bash
+
+   uv run local-inference-calculator --config-json path/to/config.json --params-b 7 --context 8192
+
+If the config does not include a parameter count, pass it with ``--params-b``. Use ``--model-name`` to override the display name.
+
 Command-Line Options
 --------------------
 

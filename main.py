@@ -13,6 +13,7 @@ para um determinado tamanho de contexto.
 import csv
 import json
 import sys
+from pathlib import Path
 from types import SimpleNamespace
 
 import click
@@ -562,7 +563,7 @@ def print_model_vram_breakdown(
     print("=" * 70)
 
 
-def estimate_kv_cache(params_billion: int) -> float:
+def estimate_kv_cache(params_billion: float) -> float:
     """Estimate KV cache per token based on model size.
 
     Estima KV cache por token baseado no tamanho do modelo.
@@ -597,6 +598,91 @@ def estimate_kv_cache(params_billion: int) -> float:
     else:
         # For very large models, KV cache grows roughly with sqrt of params
         return 3.0 * (params_billion / 100) ** 0.5
+
+
+def _first_config_value(config: dict[str, object], keys: list[str]) -> object | None:
+    """Return the first present value from common Hugging Face config aliases."""
+    for key in keys:
+        value = config.get(key)
+        if value is not None:
+            return value
+    return None
+
+
+def _config_float(config: dict[str, object], keys: list[str]) -> float | None:
+    value = _first_config_value(config, keys)
+    return float(value) if value is not None else None
+
+
+def _config_int(config: dict[str, object], keys: list[str]) -> int | None:
+    value = _first_config_value(config, keys)
+    return int(value) if value is not None else None
+
+
+def calculate_kv_cache_from_config(config: dict[str, object], kv_cache_bytes: int = 2) -> float:
+    """Calculate FP16/BF16 KV cache MB per token from a Hugging Face config."""
+    layers = _config_int(config, ["num_hidden_layers", "n_layer", "num_layers"])
+    hidden_size = _config_int(config, ["hidden_size", "n_embd", "d_model"])
+    attention_heads = _config_int(config, ["num_attention_heads", "n_head", "num_heads"])
+    kv_heads = _config_int(config, ["num_key_value_heads", "n_kv_heads", "multi_query_group_num"])
+    head_dim = _config_int(config, ["head_dim", "attention_head_dim"])
+
+    if layers is None or hidden_size is None or attention_heads is None:
+        raise ValueError("config.json must include layer count, hidden size, and attention head count")
+
+    if kv_heads is None:
+        kv_heads = 1 if config.get("multi_query") is True else attention_heads
+
+    if head_dim is None:
+        head_dim = hidden_size // attention_heads
+
+    kv_cache_bytes_per_token = 2 * layers * kv_heads * head_dim * kv_cache_bytes
+    return kv_cache_bytes_per_token / (1024 * 1024)
+
+
+def create_model_from_config_json(
+    config_path: Path,
+    params_billion: float | None = None,
+    model_name: str | None = None,
+    model_format: ModelFormat = ModelFormat.FP16,
+) -> LLMModel:
+    """Create an `LLMModel` from a Hugging Face `config.json` file."""
+    config = json.loads(config_path.read_text())
+    if not isinstance(config, dict):
+        raise ValueError("config.json root must be a JSON object")
+
+    if params_billion is None:
+        total_params = _config_float(config, ["num_parameters", "n_params", "total_params"])
+        if total_params is not None:
+            params_billion = total_params / 1_000_000_000
+
+    if params_billion is None:
+        raise ValueError("config.json does not include parameter count; pass --params-b")
+
+    architectures = config.get("architectures")
+    if isinstance(architectures, list) and architectures:
+        architecture = str(architectures[0])
+    else:
+        architecture = str(config.get("model_type", "decoder-only"))
+
+    context_length = _config_int(
+        config,
+        ["max_position_embeddings", "max_sequence_length", "max_seq_len", "seq_length", "n_positions"],
+    )
+    num_layers = _config_int(config, ["num_hidden_layers", "n_layer", "num_layers"])
+    kv_cache = calculate_kv_cache_from_config(config)
+    display_name = model_name or str(config.get("_name_or_path") or config_path.parent.name or "Config Model")
+
+    return LLMModel(
+        name=display_name,
+        params_billion=params_billion,
+        architecture=architecture,
+        precision_default="fp16",
+        kv_cache_mb_per_token=kv_cache,
+        format=model_format,
+        context_length_max=context_length,
+        num_layers=num_layers,
+    )
 
 
 @click.command(context_settings={"help_option_names": ["-h", "--help"]})
@@ -646,9 +732,15 @@ def estimate_kv_cache(params_billion: int) -> float:
     help="Calculation mode / Modo de cálculo",
 )
 @click.option(
-    "--params-b", type=int, metavar="BILLIONS", help="Generic model: parameters in billions (e.g., 8, 70, 405)"
+    "--params-b", type=float, metavar="BILLIONS", help="Generic model: parameters in billions (e.g., 8, 70, 405)"
 )
 @click.option("--kv-cache", type=float, metavar="MB_PER_TOKEN", help="Generic model: KV cache in MB per token FP16")
+@click.option(
+    "--config-json",
+    type=click.Path(exists=True, dir_okay=False, path_type=Path),
+    metavar="FILE",
+    help="Hugging Face config.json to derive KV cache metadata",
+)
 @click.option("--model-name", type=str, metavar="NAME", help="Generic model: custom name for display")
 @click.option(
     "--optimize-config",
@@ -703,6 +795,8 @@ def cli(**kwargs):
       local-inference-calculator -m 70 -c 16384 -q int4
 
       local-inference-calculator --params-b 405 --context 8192 --quantization int4
+
+      local-inference-calculator --config-json path/to/config.json --params-b 7 --context 8192
     """
     kwargs["format"] = kwargs.pop("model_format_name")
     run(SimpleNamespace(**kwargs))
@@ -782,7 +876,25 @@ def run(args: SimpleNamespace) -> None:
 
             # Get or create model
             model = None
-            if args.params_b is not None:
+            if args.config_json:
+                model = create_model_from_config_json(
+                    args.config_json,
+                    params_billion=args.params_b,
+                    model_name=args.model_name,
+                    model_format=model_format,
+                )
+                if args.kv_cache:
+                    model = LLMModel(
+                        name=model.name,
+                        params_billion=model.params_billion,
+                        architecture=model.architecture,
+                        precision_default=model.precision_default,
+                        kv_cache_mb_per_token=args.kv_cache,
+                        format=model.format,
+                        context_length_max=model.context_length_max,
+                        num_layers=model.num_layers,
+                    )
+            elif args.params_b is not None:
                 kv_cache = args.kv_cache if args.kv_cache else estimate_kv_cache(args.params_b)
                 model_name = args.model_name if args.model_name else f"Custom Model {args.params_b}B"
                 model = LLMModel(
@@ -831,8 +943,36 @@ def run(args: SimpleNamespace) -> None:
     # Lidar com --model (modelo específico) ou --params-b (modelo genérico)
     model = None
 
+    # Config-derived model takes precedence / Modelo derivado de config tem precedência
+    if args.config_json:
+        try:
+            model = create_model_from_config_json(
+                args.config_json,
+                params_billion=args.params_b,
+                model_name=args.model_name,
+                model_format=model_format,
+            )
+            if args.kv_cache:
+                model = LLMModel(
+                    name=model.name,
+                    params_billion=model.params_billion,
+                    architecture=model.architecture,
+                    precision_default=model.precision_default,
+                    kv_cache_mb_per_token=args.kv_cache,
+                    format=model.format,
+                    context_length_max=model.context_length_max,
+                    num_layers=model.num_layers,
+                )
+            print(f"\n{Colors.info('Loaded model metadata from config.json:')} {args.config_json}")
+            print(f"  Model: {model.name}")
+            print(f"  Parameters: {model.params_billion:g}B")
+            print(f"  KV cache: {model.kv_cache_mb_per_token:.4f} MB/token (FP16/BF16)")
+        except (OSError, json.JSONDecodeError, ValueError) as e:
+            print(f"Error parsing config.json: {e}", file=sys.stderr)
+            sys.exit(1)
+
     # Generic model takes precedence / Modelo genérico tem precedência
-    if args.params_b is not None:
+    elif args.params_b is not None:
         # Create generic model / Criar modelo genérico
         params_b = args.params_b
         kv_cache = args.kv_cache if args.kv_cache else estimate_kv_cache(params_b)
