@@ -11,7 +11,7 @@ To see all available models in the database:
 
 .. code-block:: bash
 
-   python main.py --list-models
+   uv run local-inference-calculator --list-models
 
 This shows model name, size, architecture, and KV cache requirements for each model.
 
@@ -22,8 +22,8 @@ To check VRAM requirements for a specific model:
 
 .. code-block:: bash
 
-   python main.py --model 7 --context 8192
-   python main.py -m 70 -c 16384 -q int4
+   uv run local-inference-calculator --model 7 --context 8192
+   uv run local-inference-calculator -m 70 -c 16384 -q int4
 
 The output includes:
 
@@ -38,13 +38,13 @@ To see all model × GPU combinations:
 
 .. code-block:: bash
 
-   python main.py --context 4096
+   uv run local-inference-calculator --context 4096
 
 Or with a larger context:
 
 .. code-block:: bash
 
-   python main.py -c 8192
+   uv run local-inference-calculator -c 8192
 
 
 Command-Line Options
@@ -52,7 +52,7 @@ Command-Line Options
 
 .. code-block:: bash
 
-   python main.py [OPTIONS]
+   uv run local-inference-calculator [OPTIONS]
 
 Basic Options
 ~~~~~~~~~~~~~
@@ -151,31 +151,31 @@ Consumer GPUs only:
 
 .. code-block:: bash
 
-   python main.py -c 8192 --gpu-type consumer
+   uv run local-inference-calculator -c 8192 --gpu-type consumer
 
 Show only viable combinations:
 
 .. code-block:: bash
 
-   python main.py -c 4096 --only-runs
+   uv run local-inference-calculator -c 4096 --only-runs
 
 Export results to JSON:
 
 .. code-block:: bash
 
-   python main.py -c 8192 --export-json results.json
+   uv run local-inference-calculator -c 8192 --export-json results.json
 
 Use INT4 quantization for larger models:
 
 .. code-block:: bash
 
-   python main.py -c 8192 -q int4 --only-runs
+   uv run local-inference-calculator -c 8192 -q int4 --only-runs
 
 Check if a 70B model fits on RTX 4090:
 
 .. code-block:: bash
 
-   python main.py --model 70 --context 8192
+   uv run local-inference-calculator --model 70 --context 8192
 
 
 Supported Precisions

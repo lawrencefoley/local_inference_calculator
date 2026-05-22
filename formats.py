@@ -9,10 +9,9 @@ Define diferentes formatos de arquivo de modelo (GGUF, EXL2, GPTQ, AWQ)
 e suas características específicas de overhead de memória.
 """
 
+import re
 from dataclasses import dataclass
 from enum import Enum
-from typing import Dict, Optional
-import re
 
 
 class ModelFormat(Enum):
@@ -41,10 +40,10 @@ class Quantization(Enum):
     Níveis de quantização para pesos do modelo.
     """
 
-    FP32 = "fp32"      # 4 bytes per parameter
-    FP16 = "fp16"      # 2 bytes per parameter
-    INT8 = "int8"      # 1 byte per parameter
-    INT4 = "int4"      # 0.5 byte per parameter (packed)
+    FP32 = "fp32"  # 4 bytes per parameter
+    FP16 = "fp16"  # 2 bytes per parameter
+    INT8 = "int8"  # 1 byte per parameter
+    INT4 = "int4"  # 0.5 byte per parameter (packed)
 
     @property
     def bytes_per_param(self) -> float:
@@ -57,7 +56,7 @@ class Quantization(Enum):
 
 # Bytes per parameter for each quantization level
 # Bytes por parâmetro para cada nível de quantização
-BYTES_PER_PARAM: Dict[Quantization, float] = {
+BYTES_PER_PARAM: dict[Quantization, float] = {
     Quantization.FP32: 4.0,  # 32 bits = 4 bytes
     Quantization.FP16: 2.0,  # 16 bits = 2 bytes
     Quantization.INT8: 1.0,  # 8 bits = 1 byte
@@ -69,12 +68,12 @@ BYTES_PER_PARAM: Dict[Quantization, float] = {
 # Multiplicadores de overhead de memória específicos por formato
 # These represent additional memory beyond the base parameter memory
 # Estes representam memória adicional além da memória base de parâmetros
-FORMAT_OVERHEAD: Dict[ModelFormat, float] = {
-    ModelFormat.FP16: 1.0,    # Baseline - no additional overhead
-    ModelFormat.GGUF: 1.15,   # +15% for metadata structure, tensor indexing
-    ModelFormat.EXL2: 1.05,   # +5% optimized layout, minimal overhead
-    ModelFormat.GPTQ: 1.10,   # +10% quantization metadata, calibration data
-    ModelFormat.AWQ: 1.08,    # +8% activation-aware quantization overhead
+FORMAT_OVERHEAD: dict[ModelFormat, float] = {
+    ModelFormat.FP16: 1.0,  # Baseline - no additional overhead
+    ModelFormat.GGUF: 1.15,  # +15% for metadata structure, tensor indexing
+    ModelFormat.EXL2: 1.05,  # +5% optimized layout, minimal overhead
+    ModelFormat.GPTQ: 1.10,  # +10% quantization metadata, calibration data
+    ModelFormat.AWQ: 1.08,  # +8% activation-aware quantization overhead
 }
 
 
@@ -82,40 +81,34 @@ FORMAT_OVERHEAD: Dict[ModelFormat, float] = {
 # Mapeamento de padrões de quantização GGUF
 # Maps GGUF quantization names to effective quantization levels
 # Mapeia nomes de quantização GGUF para níveis efetivos de quantização
-GGUF_QUANT_PATTERNS: Dict[str, Quantization] = {
+GGUF_QUANT_PATTERNS: dict[str, Quantization] = {
     # 2-bit quantizations (effective ~3-4 bits)
     "Q2_K": Quantization.INT4,
     "Q2_K_S": Quantization.INT4,
     "Q2_K_M": Quantization.INT4,
     "Q2_K_L": Quantization.INT4,
-
     # 3-bit quantizations (effective ~3-4 bits)
     "Q3_K": Quantization.INT4,
     "Q3_K_S": Quantization.INT4,
     "Q3_K_M": Quantization.INT4,
     "Q3_K_L": Quantization.INT4,
     "Q3_K_XS": Quantization.INT4,
-
     # 4-bit quantizations (effective ~4-5 bits)
     "Q4_K": Quantization.INT4,
     "Q4_K_S": Quantization.INT4,
     "Q4_K_M": Quantization.INT4,
     "Q4_0": Quantization.INT4,
     "Q4_1": Quantization.INT4,
-
     # 5-bit quantizations (effective ~5 bits, closer to INT8)
     "Q5_K": Quantization.INT8,
     "Q5_K_S": Quantization.INT8,
     "Q5_K_M": Quantization.INT8,
     "Q5_0": Quantization.INT8,
     "Q5_1": Quantization.INT8,
-
     # 6-bit quantizations (effective ~6 bits)
     "Q6_K": Quantization.INT8,
-
     # 8-bit quantization
     "Q8_0": Quantization.INT8,
-
     # Floating point
     "F16": Quantization.FP16,
     "F32": Quantization.FP32,
@@ -125,34 +118,28 @@ GGUF_QUANT_PATTERNS: Dict[str, Quantization] = {
 # Effective bits per parameter for GGUF quantization patterns
 # Used for more accurate memory calculations
 # Bits efetivos por parâmetro para padrões de quantização GGUF
-GGUF_BITS_PER_PARAM: Dict[str, float] = {
-    "Q2_K": 3.5,      # ~3.5 bits effective
+GGUF_BITS_PER_PARAM: dict[str, float] = {
+    "Q2_K": 3.5,  # ~3.5 bits effective
     "Q2_K_S": 3.0,
     "Q2_K_M": 3.5,
     "Q2_K_L": 3.75,
-
-    "Q3_K": 4.5,      # ~4.5 bits effective
+    "Q3_K": 4.5,  # ~4.5 bits effective
     "Q3_K_S": 3.5,
     "Q3_K_M": 4.5,
     "Q3_K_L": 5.0,
     "Q3_K_XS": 3.0,
-
-    "Q4_K": 5.5,      # ~5.5 bits effective
+    "Q4_K": 5.5,  # ~5.5 bits effective
     "Q4_K_S": 4.5,
     "Q4_K_M": 5.5,
     "Q4_0": 4.5,
     "Q4_1": 5.0,
-
-    "Q5_K": 6.5,      # ~6.5 bits effective
+    "Q5_K": 6.5,  # ~6.5 bits effective
     "Q5_K_S": 5.5,
     "Q5_K_M": 6.5,
     "Q5_0": 5.5,
     "Q5_1": 6.0,
-
-    "Q6_K": 7.5,      # ~7.5 bits effective
-
-    "Q8_0": 8.0,      # 8 bits
-
+    "Q6_K": 7.5,  # ~7.5 bits effective
+    "Q8_0": 8.0,  # 8 bits
     "F16": 16.0,
     "F32": 32.0,
 }
@@ -212,19 +199,11 @@ def detect_gguf_quantization(filename: str) -> GGUFInfo:
         bits_per_param = GGUF_BITS_PER_PARAM.get(quant_name, 4.5)
 
         return GGUFInfo(
-            quant_name=quant_name,
-            quant_type=quantization.value,
-            bits_per_param=bits_per_param,
-            is_gguf=True
+            quant_name=quant_name, quant_type=quantization.value, bits_per_param=bits_per_param, is_gguf=True
         )
 
     # No quantization detected - assume FP16
-    return GGUFInfo(
-        quant_name=None,
-        quant_type=Quantization.FP16.value,
-        bits_per_param=16.0,
-        is_gguf=is_gguf
-    )
+    return GGUFInfo(quant_name=None, quant_type=Quantization.FP16.value, bits_per_param=16.0, is_gguf=is_gguf)
 
 
 def get_format_from_filename(filename: str) -> ModelFormat:

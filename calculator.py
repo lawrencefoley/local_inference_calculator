@@ -9,13 +9,12 @@ Implementa a lógica de estimativa de memória necessária para rodar
 modelos de linguagem em GPUs específicas.
 """
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from enum import Enum
-from typing import List, Optional, Dict
 
-from models import LLMModel, get_all_models
+from formats import FORMAT_OVERHEAD, ModelFormat
 from gpus import GPU, get_all_gpus
-from formats import ModelFormat, FORMAT_OVERHEAD
+from models import LLMModel, get_all_models
 
 
 class Quantization(Enum):
@@ -24,10 +23,10 @@ class Quantization(Enum):
     Tipos de precisão/quantização suportados para inferência.
     """
 
-    FP32 = "fp32"      # 4 bytes per parameter (float32) / 4 bytes por parâmetro
-    FP16 = "fp16"      # 2 bytes per parameter (float16 / half precision)
-    INT8 = "int8"      # 1 byte per parameter (8-bit quantization)
-    INT4 = "int4"      # 0.5 byte per parameter (4-bit quantization, packed)
+    FP32 = "fp32"  # 4 bytes per parameter (float32) / 4 bytes por parâmetro
+    FP16 = "fp16"  # 2 bytes per parameter (float16 / half precision)
+    INT8 = "int8"  # 1 byte per parameter (8-bit quantization)
+    INT4 = "int4"  # 0.5 byte per parameter (4-bit quantization, packed)
 
     @property
     def bytes_per_param(self) -> float:
@@ -57,7 +56,8 @@ class Status(Enum):
 
     Status de viabilidade da inferência.
     """
-    RUNS = "RUNS"      # RUNS / RODA
+
+    RUNS = "RUNS"  # RUNS / RODA
     NOT_RUNS = "DOESN'T RUN"  # DOESN'T RUN / NÃO RODA
 
 
@@ -66,9 +66,10 @@ class CalculationMode(Enum):
 
     Modo de cálculo de VRAM.
     """
-    THEORETICAL = "theoretical"   # Ideal minimum, batch=1, no padding/alignment
-    CONSERVATIVE = "conservative"   # Current default, some overhead buffer
-    PRODUCTION = "production"     # Real-world serving (batch>1, buffers, fragmentation)
+
+    THEORETICAL = "theoretical"  # Ideal minimum, batch=1, no padding/alignment
+    CONSERVATIVE = "conservative"  # Current default, some overhead buffer
+    PRODUCTION = "production"  # Real-world serving (batch>1, buffers, fragmentation)
 
 
 @dataclass
@@ -294,9 +295,9 @@ class VRAMCalculator:
         # Production buffer based on calculation mode
         # Buffer de produção baseado no modo de cálculo
         mode_buffer = {
-            CalculationMode.THEORETICAL: 1.0,   # No extra buffer / Sem buffer extra
+            CalculationMode.THEORETICAL: 1.0,  # No extra buffer / Sem buffer extra
             CalculationMode.CONSERVATIVE: 1.1,  # 10% buffer for overhead
-            CalculationMode.PRODUCTION: 1.25,   # 25% buffer for real-world serving
+            CalculationMode.PRODUCTION: 1.25,  # 25% buffer for real-world serving
         }.get(self.calculation_mode, 1.0)
 
         kv_cache_mb = kv_cache_mb_per_token * context_tokens * multiplier * mode_buffer
@@ -400,9 +401,9 @@ class VRAMCalculator:
     def calculate_all_combinations(
         self,
         context_tokens: int,
-        models: List[LLMModel] | None = None,
-        gpus: List[GPU] | None = None,
-    ) -> List[InferenceResult]:
+        models: list[LLMModel] | None = None,
+        gpus: list[GPU] | None = None,
+    ) -> list[InferenceResult]:
         """Calculate feasibility for all model × GPU combinations.
 
         Calcula viabilidade para todas as combinações modelo × GPU.
@@ -455,6 +456,7 @@ def calculate_inference(context_tokens: int) -> dict:
 # CALCULADORA DE OFFLOAD DE CAMADAS
 # ============================================================================
 
+
 @dataclass
 class LayerOffloadResult:
     """Result for optimal layer offload calculation.
@@ -471,11 +473,12 @@ class LayerOffloadResult:
         performance_impact: Estimated performance impact (0-100% slower)
         recommended_gpu_split: Recommended --gpu-layers parameter for llama.cpp
     """
+
     total_layers: int
     layers_on_gpu: int
     layers_on_cpu: int
     gpu_vram_used: float  # GB
-    cpu_ram_used: float   # GB
+    cpu_ram_used: float  # GB
     offload_ratio: float
     performance_impact: float  # Percentage slower
     recommended_gpu_split: str
@@ -651,6 +654,7 @@ class LayerOffloadCalculator:
 # CALCULADORA DE OFFLOAD DE CPU
 # ============================================================================
 
+
 @dataclass
 class PCIeConfig:
     """PCIe bandwidth configuration.
@@ -662,6 +666,7 @@ class PCIeConfig:
         bandwidth_gb_s: Theoretical bandwidth in GB/s (per lane x16)
         lanes: Number of lanes (typically x16 for GPUs)
     """
+
     generation: str
     bandwidth_gb_s: float
     lanes: int = 16
@@ -678,10 +683,10 @@ class PCIeConfig:
 
 # PCIe bandwidth specifications (x16)
 # Especificações de largura de banda PCIe (x16)
-PCIE_CONFIGS: Dict[str, PCIeConfig] = {
-    "3.0": PCIeConfig(generation="3.0", bandwidth_gb_s=16.0, lanes=16),   # ~16 GB/s theoretical
-    "4.0": PCIeConfig(generation="4.0", bandwidth_gb_s=32.0, lanes=16),   # ~32 GB/s theoretical
-    "5.0": PCIeConfig(generation="5.0", bandwidth_gb_s=64.0, lanes=16),   # ~64 GB/s theoretical
+PCIE_CONFIGS: dict[str, PCIeConfig] = {
+    "3.0": PCIeConfig(generation="3.0", bandwidth_gb_s=16.0, lanes=16),  # ~16 GB/s theoretical
+    "4.0": PCIeConfig(generation="4.0", bandwidth_gb_s=32.0, lanes=16),  # ~32 GB/s theoretical
+    "5.0": PCIeConfig(generation="5.0", bandwidth_gb_s=64.0, lanes=16),  # ~64 GB/s theoretical
 }
 
 
@@ -700,6 +705,7 @@ class CPUOffloadResult:
         estimated_token_speed: Estimated tokens/second with offload
         speed_vs_full_gpu: Speed ratio vs full GPU (0.0 to 1.0)
     """
+
     system_ram_required: float  # GB
     system_ram_available: float  # GB
     fits_in_ram: bool
@@ -817,7 +823,7 @@ class CPUOffloadCalculator:
             # Adjust for PCIe bandwidth bottleneck
             # Faster PCIe = better performance with offload
             pcie_multiplier = self.pcie_config.effective_bandwidth_gb_s / 24.0  # Normalized to PCIe 4.0
-            estimated_speed *= (0.7 + 0.3 * pcie_multiplier)
+            estimated_speed *= 0.7 + 0.3 * pcie_multiplier
 
             speed_ratio = estimated_speed / baseline_speed
 
@@ -842,21 +848,16 @@ class CPUOffloadCalculator:
             CPUOffloadResult with configuration details
         """
         # Get layer offload configuration
-        offload_config = self.layer_calculator.calculate_optimal_offload(
-            model, gpu, context_tokens
-        )
+        offload_config = self.layer_calculator.calculate_optimal_offload(model, gpu, context_tokens)
 
         # Calculate system RAM requirement
         # CPU layers + any additional runtime overhead on CPU
-        total_memory = self.calculate_total_model_memory(model)
         system_ram_required = offload_config.cpu_ram_used + 2.0  # +2GB for CPU runtime overhead
 
         fits_in_ram = system_ram_required <= self.system_ram_gb
 
         # Estimate performance
-        estimated_speed, speed_ratio = self.estimate_offload_performance(
-            offload_config, model
-        )
+        estimated_speed, speed_ratio = self.estimate_offload_performance(offload_config, model)
 
         return CPUOffloadResult(
             system_ram_required=system_ram_required,

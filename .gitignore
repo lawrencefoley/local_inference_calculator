@@ -1,6 +1,9 @@
 # Python files
+.venv/
 venv/
 __pycache__/
+build/
+*.egg-info/
 
 # Documentação gerada pelo Sphynx é gerenciada pelo GitHub Actions
 docs/_build/

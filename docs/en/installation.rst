@@ -4,18 +4,33 @@ Installation
 Requirements
 ------------
 
-* Python 3.10 or higher
+* Python 3.11 or higher
+* uv
 
-No external dependencies beyond Python standard library.
+This project uses uv and depends on click for the command-line interface.
 
 Installation
 ------------
 
-Clone the repository or navigate to the project directory:
+Clone the repository and sync dependencies:
 
 .. code-block:: bash
 
+   git clone https://github.com/lawrencefoley/local_inference_calculator.git
    cd local_inference_calculator
+   uv sync
+
+Run from a checkout:
+
+.. code-block:: bash
+
+   uv run local-inference-calculator --help
+
+Run as a uv tool from a checkout:
+
+.. code-block:: bash
+
+   uvx --from . local-inference-calculator --help
 
 Project Structure
 -----------------

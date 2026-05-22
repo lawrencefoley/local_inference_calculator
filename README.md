@@ -6,27 +6,43 @@ Quickly discover which language models run on your GPU for a given context size.
 
 ## Installation
 
+This project uses [uv](https://docs.astral.sh/uv/) for dependency management and packaging.
+
 ```bash
+git clone https://github.com/lawrencefoley/local_inference_calculator.git
 cd local_inference_calculator
+uv sync
 ```
 
-No external dependencies beyond Python standard library.
+Run the CLI from a checkout:
+
+```bash
+uv run local-inference-calculator --help
+```
+
+Install/run it as a uv tool from the local checkout:
+
+```bash
+uvx --from . local-inference-calculator --help
+```
+
+After publishing or installing from a Git URL, you can also run it with `uvx` using the package source.
 
 ## Usage
 
 ### List Available Models
 
 ```bash
-python main.py --list-models
+uv run local-inference-calculator --list-models
 ```
 
 ### Check Specific Model VRAM Requirements
 
 ```bash
-python main.py --model 7 --context 8192
-python main.py -m 70 -c 16384 -q int4
-python main.py -m 0.6 -c 8192      # Small models (0.6B, 1B, etc.)
-python main.py -m 70 -c 8192 -q int4 --mode production
+uv run local-inference-calculator --model 7 --context 8192
+uv run local-inference-calculator -m 70 -c 16384 -q int4
+uv run local-inference-calculator -m 0.6 -c 8192      # Small models (0.6B, 1B, etc.)
+uv run local-inference-calculator -m 70 -c 8192 -q int4 --mode production
 ```
 
 This shows:
@@ -44,7 +60,7 @@ This shows:
 Calculate optimal GPU layer offload for models that don't fully fit in VRAM:
 
 ```bash
-python main.py --model 70 --context 8192 --optimize-config --quantization int4
+uv run local-inference-calculator --model 70 --context 8192 --optimize-config --quantization int4
 ```
 
 This shows:
@@ -58,7 +74,7 @@ This shows:
 Calculate hybrid GPU+CPU inference configuration:
 
 ```bash
-python main.py --model 70 --context 8192 --cpu-offload --system-ram 64 --pcie-gen 4.0
+uv run local-inference-calculator --model 70 --context 8192 --cpu-offload --system-ram 64 --pcie-gen 4.0
 ```
 
 This shows:
@@ -72,8 +88,8 @@ This shows:
 Calculate tensor parallelism or pipeline parallelism across multiple GPUs:
 
 ```bash
-python main.py --params-b 405 --context 8192 --quantization int4 --multi-gpu --gpu-config "2x4090,1x3090"
-python main.py --params-b 405 --multi-gpu --gpu-config "3x3090" --multi-gpu-mode pipeline
+uv run local-inference-calculator --params-b 405 --context 8192 --quantization int4 --multi-gpu --gpu-config "2x4090,1x3090"
+uv run local-inference-calculator --params-b 405 --multi-gpu --gpu-config "3x3090" --multi-gpu-mode pipeline
 ```
 
 Supported configurations:
@@ -86,7 +102,7 @@ Supported configurations:
 Auto-detect GGUF quantization from filename:
 
 ```bash
-python main.py --gguf-file "llama-2-7b.Q4_K_M.gguf" --context 4096
+uv run local-inference-calculator --gguf-file "llama-2-7b.Q4_K_M.gguf" --context 4096
 ```
 
 Detected quantizations: Q2_K, Q3_K, Q4_K, Q5_K, Q6_K, Q8_0, F16, F32
@@ -96,8 +112,8 @@ Detected quantizations: Q2_K, Q3_K, Q4_K, Q5_K, Q6_K, Q8_0, F16, F32
 Specify model format for accurate memory overhead:
 
 ```bash
-python main.py --model 7 --context 8192 --format gguf --quantization int4
-python main.py --model 13 --context 8192 --format exl2
+uv run local-inference-calculator --model 7 --context 8192 --format gguf --quantization int4
+uv run local-inference-calculator --model 13 --context 8192 --format exl2
 ```
 
 Supported formats: `fp16`, `gguf`, `exl2`, `gptq`, `awq`
@@ -105,26 +121,26 @@ Supported formats: `fp16`, `gguf`, `exl2`, `gptq`, `awq`
 ### Basic (All Combinations)
 
 ```bash
-python main.py --context 4096
+uv run local-inference-calculator --context 4096
 ```
 
 ### Consumer GPUs Only
 
 ```bash
-python main.py -c 8192 --gpu-type consumer
+uv run local-inference-calculator -c 8192 --gpu-type consumer
 ```
 
 ### Show Only Viable Combinations
 
 ```bash
-python main.py -c 4096 --only-runs
+uv run local-inference-calculator -c 4096 --only-runs
 ```
 
 ### Export Results
 
 ```bash
-python main.py -c 4096 --export-json results.json
-python main.py -c 4096 --export-csv results.csv
+uv run local-inference-calculator -c 4096 --export-json results.json
+uv run local-inference-calculator -c 4096 --export-csv results.csv
 ```
 
 ### Calculation Modes
@@ -132,9 +148,9 @@ python main.py -c 4096 --export-csv results.csv
 The tool supports three calculation modes for different scenarios:
 
 ```bash
-python main.py -c 8192 --mode theoretical   # Ideal minimum
-python main.py -c 8192 --mode conservative  # Default (10% buffer)
-python main.py -c 8192 --mode production    # Real-world serving (25% buffer)
+uv run local-inference-calculator -c 8192 --mode theoretical   # Ideal minimum
+uv run local-inference-calculator -c 8192 --mode conservative  # Default (10% buffer)
+uv run local-inference-calculator -c 8192 --mode production    # Real-world serving (25% buffer)
 ```
 
 ## Professional Features
@@ -339,8 +355,7 @@ The project includes comprehensive Sphinx documentation in **English** and **Por
 Install documentation dependencies:
 
 ```bash
-cd docs
-pip install -r requirements.txt
+uv pip install -r docs/requirements.txt
 ```
 
 Build English documentation:
@@ -419,14 +434,10 @@ git clone <your-fork-url>
 cd local_inference_calculator
 
 # Create a virtual environment (recommended)
-python -m venv venv
-source venv/bin/activate  # Windows: venv\Scripts\activate
+uv sync
 
-# Install documentation dependencies (for building docs)
-pip install -r docs/requirements.txt
-
-# Run tests or make your changes
-python main.py --list-models
+# Run the CLI while developing
+uv run local-inference-calculator --list-models
 
 # Build documentation to verify changes
 cd docs && make html LANG=en

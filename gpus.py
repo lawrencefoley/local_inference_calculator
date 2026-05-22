@@ -9,7 +9,6 @@ Inclui GPUs consumer e datacenter com suas capacidades de VRAM.
 
 from dataclasses import dataclass
 from enum import Enum
-from typing import List, Optional
 
 
 class GPUType(Enum):
@@ -17,6 +16,7 @@ class GPUType(Enum):
 
     Tipo de GPU: consumer ou datacenter.
     """
+
     CONSUMER = "consumer"
     DATACENTER = "datacenter"
 
@@ -59,7 +59,7 @@ class GPU:
 # Hardcoded GPU database
 # Base de GPUs hardcoded
 
-GPUS: List[GPU] = [
+GPUS: list[GPU] = [
     # ============================================================
     # CONSUMER GPUs - NVIDIA GeForce RTX 30 Series
     # ============================================================
@@ -111,7 +111,6 @@ GPUS: List[GPU] = [
         type=GPUType.CONSUMER,
         architecture="Ampere",
     ),
-
     # ============================================================
     # CONSUMER GPUs - NVIDIA GeForce RTX 40 Series
     # ============================================================
@@ -169,7 +168,6 @@ GPUS: List[GPU] = [
         type=GPUType.CONSUMER,
         architecture="Ada Lovelace",
     ),
-
     # ============================================================
     # CONSUMER GPUs - NVIDIA GeForce RTX 50 Series
     # ============================================================
@@ -215,7 +213,6 @@ GPUS: List[GPU] = [
         type=GPUType.CONSUMER,
         architecture="Blackwell",
     ),
-
     # ============================================================
     # CONSUMER GPUs - AMD Radeon RX 7000 Series
     # ============================================================
@@ -249,7 +246,6 @@ GPUS: List[GPU] = [
         type=GPUType.CONSUMER,
         architecture="RDNA 3",
     ),
-
     # ============================================================
     # CONSUMER GPUs - AMD Radeon RX 6000 Series (relevant legacy)
     # GPUs Consumer - AMD Radeon RX 6000 Series (legado relevante)
@@ -278,7 +274,6 @@ GPUS: List[GPU] = [
         type=GPUType.CONSUMER,
         architecture="RDNA 2",
     ),
-
     # ============================================================
     # DATACENTER GPUs - NVIDIA
     # ============================================================
@@ -336,7 +331,6 @@ GPUS: List[GPU] = [
         type=GPUType.DATACENTER,
         architecture="Ada Lovelace",
     ),
-
     # ============================================================
     # GOOGLE COLAB GPUs
     # ============================================================
@@ -358,7 +352,6 @@ GPUS: List[GPU] = [
         type=GPUType.DATACENTER,
         architecture="Pascal",
     ),
-
     # ============================================================
     # DATACENTER GPUs - AMD
     # ============================================================
@@ -400,7 +393,7 @@ def get_gpu_by_name(name: str) -> GPU | None:
     return None
 
 
-def get_consumer_gpus() -> List[GPU]:
+def get_consumer_gpus() -> list[GPU]:
     """Returns all consumer GPUs.
 
     Retorna todas as GPUs consumer.
@@ -411,7 +404,7 @@ def get_consumer_gpus() -> List[GPU]:
     return [gpu for gpu in GPUS if gpu.type == GPUType.CONSUMER]
 
 
-def get_datacenter_gpus() -> List[GPU]:
+def get_datacenter_gpus() -> list[GPU]:
     """Returns all datacenter GPUs.
 
     Retorna todas as GPUs datacenter.
@@ -422,7 +415,7 @@ def get_datacenter_gpus() -> List[GPU]:
     return [gpu for gpu in GPUS if gpu.type == GPUType.DATACENTER]
 
 
-def get_all_gpus() -> List[GPU]:
+def get_all_gpus() -> list[GPU]:
     """Returns all available GPUs.
 
     Retorna todas as GPUs disponíveis.
@@ -433,7 +426,7 @@ def get_all_gpus() -> List[GPU]:
     return GPUS.copy()
 
 
-def get_gpus_by_vram_min(min_vram_gb: int) -> List[GPU]:
+def get_gpus_by_vram_min(min_vram_gb: int) -> list[GPU]:
     """Returns GPUs with at least the specified VRAM.
 
     Retorna GPUs com pelo menos a VRAM especificada.

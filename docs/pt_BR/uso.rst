@@ -11,7 +11,7 @@ Para ver todos os modelos disponíveis no banco de dados:
 
 .. code-block:: bash
 
-   python main.py --list-models
+   uv run local-inference-calculator --list-models
 
 Isso mostra nome do modelo, tamanho, arquitetura e requisitos de KV cache
 para cada modelo.
@@ -23,8 +23,8 @@ Para verificar os requisitos de VRAM para um modelo específico:
 
 .. code-block:: bash
 
-   python main.py --model 7 --context 8192
-   python main.py -m 70 -c 16384 -q int4
+   uv run local-inference-calculator --model 7 --context 8192
+   uv run local-inference-calculator -m 70 -c 16384 -q int4
 
 A saída inclui:
 
@@ -40,13 +40,13 @@ Para ver todas as combinações modelo × GPU:
 
 .. code-block:: bash
 
-   python main.py --context 4096
+   uv run local-inference-calculator --context 4096
 
 Ou com contexto maior:
 
 .. code-block:: bash
 
-   python main.py -c 8192
+   uv run local-inference-calculator -c 8192
 
 
 Opções de Linha de Comando
@@ -54,7 +54,7 @@ Opções de Linha de Comando
 
 .. code-block:: bash
 
-   python main.py [OPTIONS]
+   uv run local-inference-calculator [OPTIONS]
 
 Opções Básicas
 ~~~~~~~~~~~~~~
@@ -153,31 +153,31 @@ Apenas GPUs consumer:
 
 .. code-block:: bash
 
-   python main.py -c 8192 --gpu-type consumer
+   uv run local-inference-calculator -c 8192 --gpu-type consumer
 
 Mostrar apenas combinações viáveis:
 
 .. code-block:: bash
 
-   python main.py -c 4096 --only-runs
+   uv run local-inference-calculator -c 4096 --only-runs
 
 Exportar resultados para JSON:
 
 .. code-block:: bash
 
-   python main.py -c 8192 --export-json resultados.json
+   uv run local-inference-calculator -c 8192 --export-json resultados.json
 
 Usar quantização INT4 para modelos maiores:
 
 .. code-block:: bash
 
-   python main.py -c 8192 -q int4 --only-runs
+   uv run local-inference-calculator -c 8192 -q int4 --only-runs
 
 Verificar se um modelo 70B roda em RTX 4090:
 
 .. code-block:: bash
 
-   python main.py --model 70 --context 8192
+   uv run local-inference-calculator --model 70 --context 8192
 
 
 Precisões Suportadas

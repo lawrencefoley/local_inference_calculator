@@ -10,23 +10,32 @@ Permite descobrir rapidamente quais modelos rodam em qual GPU
 para um determinado tamanho de contexto.
 """
 
-import argparse
 import csv
 import json
 import sys
-from typing import List
+from types import SimpleNamespace
 
-from models import LLMModel, get_all_models, get_model_by_size
-from gpus import GPU, get_all_gpus, get_consumer_gpus, get_datacenter_gpus, get_gpu_by_name
+import click
+
 from calculator import (
-    VRAMCalculator, Quantization, InferenceResult, Status, CalculationMode,
-    LayerOffloadCalculator, LayerOffloadResult,
-    CPUOffloadCalculator, CPUOffloadResult,
+    CalculationMode,
+    CPUOffloadCalculator,
+    CPUOffloadResult,
+    InferenceResult,
+    LayerOffloadCalculator,
+    LayerOffloadResult,
+    Quantization,
+    Status,
+    VRAMCalculator,
 )
-from formats import ModelFormat, detect_gguf_quantization, get_format_from_filename
+from formats import ModelFormat, detect_gguf_quantization
+from gpus import GPU, get_all_gpus, get_consumer_gpus, get_datacenter_gpus
+from models import LLMModel, get_all_models, get_model_by_size
 from multi_gpu import (
-    MultiGPUConfig, MultiGPUCalculator, MultiGPUMode,
-    parse_gpu_config_string, create_multi_gpu_config,
+    MultiGPUCalculator,
+    MultiGPUConfig,
+    MultiGPUMode,
+    parse_gpu_config_string,
 )
 
 
@@ -37,6 +46,7 @@ class Colors:
 
     Códigos de cores ANSI para saída de terminal.
     """
+
     RESET = "\033[0m"
     BOLD = "\033[1m"
     DIM = "\033[2m"
@@ -94,7 +104,7 @@ class Colors:
 
 
 def print_table(
-    results: List[InferenceResult],
+    results: list[InferenceResult],
     group_by_gpu: bool = False,
     show_only_runs: bool = False,
 ):
@@ -164,7 +174,7 @@ def print_table(
             print(f"  ⚠️  {r.warning}")
 
 
-def print_summary_by_model(results: List[InferenceResult]):
+def print_summary_by_model(results: list[InferenceResult]):
     """Prints summary grouped by model size.
 
     Imprime resumo agrupado por tamanho de modelo.
@@ -180,7 +190,7 @@ def print_summary_by_model(results: List[InferenceResult]):
     # Agrupar por tamanho de modelo
     from collections import defaultdict
 
-    by_model: dict[int, List[InferenceResult]] = defaultdict(list)
+    by_model: dict[int, list[InferenceResult]] = defaultdict(list)
     for r in results:
         by_model[r.model_params_billion].append(r)
 
@@ -193,14 +203,16 @@ def print_summary_by_model(results: List[InferenceResult]):
         if runnable:
             print(f"  ✓ RUNS on: / RODA em: {', '.join(sorted(set(r.gpu_name for r in runnable)))}")
         else:
-            print(f"  ✗ Doesn't run on any listed GPU / Não roda em nenhuma GPU listada")
+            print("  ✗ Doesn't run on any listed GPU / Não roda em nenhuma GPU listada")
 
         if not_runnable:
             closest = min(not_runnable, key=lambda r: r.required_vram_gb - r.gpu_vram_gb)
-            print(f"  ⚠️  Closest: / Mais próximo: {closest.gpu_name} (needs / precisa de {closest.required_vram_gb:.1f} GB)")
+            print(
+                f"  ⚠️  Closest: / Mais próximo: {closest.gpu_name} (needs / precisa de {closest.required_vram_gb:.1f} GB)"
+            )
 
 
-def print_summary_by_gpu(results: List[InferenceResult]):
+def print_summary_by_gpu(results: list[InferenceResult]):
     """Prints summary grouped by GPU.
 
     Imprime resumo agrupado por GPU.
@@ -216,7 +228,7 @@ def print_summary_by_gpu(results: List[InferenceResult]):
     # Agrupar por GPU
     from collections import defaultdict
 
-    by_gpu: dict[str, List[InferenceResult]] = defaultdict(list)
+    by_gpu: dict[str, list[InferenceResult]] = defaultdict(list)
     for r in results:
         by_gpu[r.gpu_name].append(r)
 
@@ -236,7 +248,7 @@ def print_summary_by_gpu(results: List[InferenceResult]):
             models = sorted(set(r.model_params_billion for r in runnable))
             print(f"  ✓ Supports: / Suporta: {', '.join(f'{m}B' for m in models)}")
         else:
-            print(f"  ✗ Doesn't support any listed model / Não suporta nenhum modelo listado")
+            print("  ✗ Doesn't support any listed model / Não suporta nenhum modelo listado")
 
 
 def print_layer_offload_result(result: LayerOffloadResult, model: LLMModel, gpu: GPU):
@@ -259,7 +271,9 @@ def print_layer_offload_result(result: LayerOffloadResult, model: LLMModel, gpu:
 
     print(f"\n{Colors.CYAN}Layer Distribution:{Colors.RESET}")
     print(f"  Layers on GPU:  {Colors.ok(str(result.layers_on_gpu))}")
-    print(f"  Layers on CPU:  {Colors.warning(str(result.layers_on_cpu)) if result.layers_on_cpu > 0 else Colors.dim(str(result.layers_on_cpu))}")
+    print(
+        f"  Layers on CPU:  {Colors.warning(str(result.layers_on_cpu)) if result.layers_on_cpu > 0 else Colors.dim(str(result.layers_on_cpu))}"
+    )
     print(f"  Offload Ratio:  {result.offload_ratio:.1%}")
 
     print(f"\n{Colors.CYAN}Memory Usage:{Colors.RESET}")
@@ -313,7 +327,9 @@ def print_cpu_offload_result(result: CPUOffloadResult, model: LLMModel):
     if result.fits_in_ram:
         print(f"  Status: {Colors.ok('✓ Fits in system RAM')}")
     else:
-        print(f"  Status: {Colors.error(f'✗ Need {result.system_ram_required - result.system_ram_available:.2f} GB more RAM')}")
+        print(
+            f"  Status: {Colors.error(f'✗ Need {result.system_ram_required - result.system_ram_available:.2f} GB more RAM')}"
+        )
 
     print(f"\n{Colors.CYAN}PCIe Configuration:{Colors.RESET}")
     print(f"  Generation: PCIe {result.pcie_generation}")
@@ -333,7 +349,9 @@ def print_cpu_offload_result(result: CPUOffloadResult, model: LLMModel):
     offload = result.offload_config
     print(f"\n{Colors.CYAN}Layer Distribution:{Colors.RESET}")
     print(f"  Layers on GPU:  {Colors.ok(str(offload.layers_on_gpu))}")
-    print(f"  Layers on CPU:  {Colors.warning(str(offload.layers_on_cpu)) if offload.layers_on_cpu > 0 else Colors.dim(str(offload.layers_on_cpu))}")
+    print(
+        f"  Layers on CPU:  {Colors.warning(str(offload.layers_on_cpu)) if offload.layers_on_cpu > 0 else Colors.dim(str(offload.layers_on_cpu))}"
+    )
     print(f"  Offload Ratio:  {offload.offload_ratio:.1%}")
     print(f"  GPU VRAM used:  {offload.gpu_vram_used:.2f} GB")
     print(f"  CPU RAM used:   {offload.cpu_ram_used:.2f} GB")
@@ -360,7 +378,7 @@ def print_multi_gpu_result(result, model: LLMModel):
 
     print(f"\n{Colors.CYAN}Model:{Colors.RESET} {model.name} ({model.params_billion}B parameters)")
 
-    status_text = Colors.ok('RUNS') if result.status == 'runs' else Colors.error("DOESN'T RUN")
+    status_text = Colors.ok("RUNS") if result.status == "runs" else Colors.error("DOESN'T RUN")
     print(f"{Colors.CYAN}Status:{Colors.RESET} {status_text}")
 
     if result.bottleneck_gpu:
@@ -385,72 +403,44 @@ def print_multi_gpu_result(result, model: LLMModel):
     print("=" * 70)
 
 
-def print_summary_by_gpu(results: List[InferenceResult]):
-    """Prints summary grouped by GPU.
-
-    Imprime resumo agrupado por GPU.
-
-    Shows for each GPU which models it supports.
-    Mostra para cada GPU quais modelos suporta.
-    """
-    print("\n" + "=" * 70)
-    print("SUMMARY BY GPU / RESUMO POR GPU")
-    print("=" * 70)
-
-    # Group by GPU
-    # Agrupar por GPU
-    from collections import defaultdict
-
-    by_gpu: dict[str, List[InferenceResult]] = defaultdict(list)
-    for r in results:
-        by_gpu[r.gpu_name].append(r)
-
-    # Sort GPUs by VRAM
-    # Ordenar GPUs por VRAM
-    gpu_vram = {r.gpu_name: r.gpu_vram_gb for r in results}
-    sorted_gpus = sorted(by_gpu.keys(), key=lambda g: gpu_vram[g])
-
-    for gpu_name in sorted_gpus:
-        gpu_results = by_gpu[gpu_name]
-        runnable = [r for r in gpu_results if r.status == Status.RUNS]
-
-        vram = gpu_results[0].gpu_vram_gb
-        print(f"\n{gpu_name} ({vram} GB):")
-
-        if runnable:
-            models = sorted(set(r.model_params_billion for r in runnable))
-            print(f"  ✓ Supports: / Suporta: {', '.join(f'{m}B' for m in models)}")
-        else:
-            print(f"  ✗ Doesn't support any listed model / Não suporta nenhum modelo listado")
-
-
-def export_csv(results: List[InferenceResult], filepath: str):
+def export_csv(results: list[InferenceResult], filepath: str):
     """Exports results to CSV.
 
     Exporta resultados para CSV.
     """
     with open(filepath, "w", newline="") as f:
         writer = csv.writer(f)
-        writer.writerow([
-            "Model", "Params_B", "GPU", "GPU_VRAM_GB",
-            "VRAM_Required_GB", "Status", "VRAM_Free_%", "Quantization", "Warning"
-        ])
+        writer.writerow(
+            [
+                "Model",
+                "Params_B",
+                "GPU",
+                "GPU_VRAM_GB",
+                "VRAM_Required_GB",
+                "Status",
+                "VRAM_Free_%",
+                "Quantization",
+                "Warning",
+            ]
+        )
         for r in results:
-            writer.writerow([
-                r.model_name,
-                r.model_params_billion,
-                r.gpu_name,
-                r.gpu_vram_gb,
-                round(r.required_vram_gb, 2),
-                r.status.value,
-                round(r.vram_free_percent, 1),
-                r.quantization.value,
-                r.warning or "",
-            ])
+            writer.writerow(
+                [
+                    r.model_name,
+                    r.model_params_billion,
+                    r.gpu_name,
+                    r.gpu_vram_gb,
+                    round(r.required_vram_gb, 2),
+                    r.status.value,
+                    round(r.vram_free_percent, 1),
+                    r.quantization.value,
+                    r.warning or "",
+                ]
+            )
     print(f"\n✓ Results exported to: / Resultados exportados para: {filepath}")
 
 
-def export_json(results: List[InferenceResult], filepath: str, context_tokens: int, quantization: Quantization):
+def export_json(results: list[InferenceResult], filepath: str, context_tokens: int, quantization: Quantization):
     """Exports results to JSON.
 
     Exporta resultados para JSON.
@@ -482,10 +472,15 @@ def list_models():
         print(f"     KV cache: {model.kv_cache_mb_per_token} MB/token (FP16 baseline)")
 
     print("\n" + "=" * 70)
-    print("\nUsage: python main.py --model <size>  (e.g., --model 7)")
+    print("\nUsage: uv run local-inference-calculator --model <size>  (e.g., --model 7)")
 
 
-def print_model_vram_breakdown(model: LLMModel, context_tokens: int, quantization: Quantization, calculation_mode: CalculationMode = CalculationMode.CONSERVATIVE):
+def print_model_vram_breakdown(
+    model: LLMModel,
+    context_tokens: int,
+    quantization: Quantization,
+    calculation_mode: CalculationMode = CalculationMode.CONSERVATIVE,
+):
     """Prints detailed VRAM breakdown for a specific model.
 
     Imprime breakdown detalhado de VRAM para um modelo específico.
@@ -496,7 +491,7 @@ def print_model_vram_breakdown(model: LLMModel, context_tokens: int, quantizatio
         quantization: Quantization type
         calculation_mode: Calculation mode
     """
-    from calculator import VRAMCalculator, BYTES_PER_PARAM, KV_CACHE_MULTIPLIER
+    from calculator import BYTES_PER_PARAM, VRAMCalculator
 
     calc = VRAMCalculator(quantization=quantization, calculation_mode=calculation_mode)
     breakdown = calc.calculate_total_vram(model, context_tokens)
@@ -514,19 +509,23 @@ def print_model_vram_breakdown(model: LLMModel, context_tokens: int, quantizatio
     print(f"{Colors.BOLD}VRAM BREAKDOWN: {model.name}{Colors.RESET}")
     print("=" * 70)
     print(f"\n{Colors.CYAN}Configuration:{Colors.RESET}")
-    print(f"  Batch size:           1 (inference only)")
+    print("  Batch size:           1 (inference only)")
     print(f"  Context:              {context_tokens:,} tokens")
-    print(f"  Quantization backend: {Colors.bold(quantization.value.upper())} ({BYTES_PER_PARAM[quantization]} bytes/param)")
-    print(f"  KV cache precision:   FP16 (default) | Quantized (experimental)")
+    print(
+        f"  Quantization backend: {Colors.bold(quantization.value.upper())} ({BYTES_PER_PARAM[quantization]} bytes/param)"
+    )
+    print("  KV cache precision:   FP16 (default) | Quantized (experimental)")
     print(f"  Calculation mode:     {calculation_mode.value}")
-    print(f"  Memory allocator:     PyTorch-style (HF Transformers, vLLM)")
+    print("  Memory allocator:     PyTorch-style (HF Transformers, vLLM)")
 
     print(f"\n{Colors.CYAN}Memory Breakdown:{Colors.RESET}")
     print(f"  Model parameters:     {breakdown.params_memory_gb:.2f} GB")
     print(f"  Overhead (30%):       {Colors.dim(f'{breakdown.overhead_gb:.2f} GB')}")
     print(f"  Model + overhead:     {breakdown.model_with_overhead_gb:.2f} GB")
-    print(f"  KV cache (FP16):      {Colors.warning(f'{breakdown.kv_cache_gb:.2f} GB')} ({calculation_mode.value} mode)")
-    print(f"  " + "-" * 40)
+    print(
+        f"  KV cache (FP16):      {Colors.warning(f'{breakdown.kv_cache_gb:.2f} GB')} ({calculation_mode.value} mode)"
+    )
+    print("  " + "-" * 40)
     print(f"  {Colors.BOLD}TOTAL VRAM:{Colors.RESET:15} {Colors.bold(f'{breakdown.total_vram_gb:.2f} GB')}")
 
     print(f"\n{Colors.CYAN}Real-World Usage Estimates:{Colors.RESET}")
@@ -538,27 +537,27 @@ def print_model_vram_breakdown(model: LLMModel, context_tokens: int, quantizatio
 
     # Show assumptions for production mode
     print(f"\n{Colors.DIM}  Assumptions:{Colors.RESET}")
-    print(f"    • batch_size = 1 (no batching)")
-    print(f"    • No LoRA adapters active")
-    print(f"    • No speculative decoding")
-    print(f"    • No tool calling overhead")
-    print(f"    • PyTorch allocator (TensorRT-LLM / llama.cpp may vary)")
-    print(f"    • KV cache in FP16 (quantized KV cache is experimental)")
-    print(f"      → Weights INT4 ≠ KV cache INT4 in most frameworks")
+    print("    • batch_size = 1 (no batching)")
+    print("    • No LoRA adapters active")
+    print("    • No speculative decoding")
+    print("    • No tool calling overhead")
+    print("    • PyTorch allocator (TensorRT-LLM / llama.cpp may vary)")
+    print("    • KV cache in FP16 (quantized KV cache is experimental)")
+    print("      → Weights INT4 ≠ KV cache INT4 in most frameworks")
 
     print(f"\n{Colors.DIM}  Scaling notes:{Colors.RESET}")
-    print(f"    • KV cache scales linearly with context length")
+    print("    • KV cache scales linearly with context length")
     print(f"      → 16k context ≈ {breakdown.kv_cache_gb * 2:.1f} GB KV cache")
     print(f"      → 32k context ≈ {breakdown.kv_cache_gb * 4:.1f} GB KV cache")
-    print(f"    • KV cache scales linearly with batch size")
+    print("    • KV cache scales linearly with batch size")
     print(f"      → batch_size = 4 ≈ +{breakdown.kv_cache_gb * 3:.1f} GB KV cache")
-    print(f"    • VRAM calculations do not account for throughput or latency")
+    print("    • VRAM calculations do not account for throughput or latency")
     print(f"      → This tool measures {Colors.bold('capacity')}, not speed")
 
     # Warning for 24GB GPUs near limit
     if is_tight_24gb:
         print(f"\n  {Colors.BG_RED}{Colors.WHITE} ⚠️  WARNING: 24GB GPUs run at the limit.{Colors.RESET}")
-        print(f"     Any batching, adapters (LoRA), or additional features may cause OOM.")
+        print("     Any batching, adapters (LoRA), or additional features may cause OOM.")
 
     print("=" * 70)
 
@@ -600,229 +599,120 @@ def estimate_kv_cache(params_billion: int) -> float:
         return 3.0 * (params_billion / 100) ** 0.5
 
 
-def parse_args():
-    """Parse CLI arguments.
+@click.command(context_settings={"help_option_names": ["-h", "--help"]})
+@click.option(
+    "-c",
+    "--context",
+    type=int,
+    default=4096,
+    show_default=True,
+    help="Context size in tokens / Tamanho do contexto em tokens",
+)
+@click.option("--list-models", is_flag=True, help="List all available models / Listar todos os modelos disponíveis")
+@click.option(
+    "-m", "--model", type=float, metavar="SIZE", help="Model size in billions of parameters (e.g., 0.6, 7, 13, 70)"
+)
+@click.option(
+    "--gpu-type",
+    type=click.Choice(["consumer", "datacenter", "all"]),
+    default="all",
+    show_default=True,
+    help="GPU type to consider / Tipo de GPU a considerar",
+)
+@click.option("--only-runs", is_flag=True, help="Show only running combinations / Mostrar apenas combinações que rodam")
+@click.option("--group-gpu", is_flag=True, help="Group results by GPU instead of model / Agrupar resultados por GPU")
+@click.option(
+    "--summary",
+    type=click.Choice(["model", "gpu", "both", "none"]),
+    default="both",
+    show_default=True,
+    help="Summary type to show / Tipo de resumo a mostrar",
+)
+@click.option("--export-csv", metavar="FILE", help="Export results to CSV / Exportar resultados para CSV")
+@click.option("--export-json", metavar="FILE", help="Export results to JSON / Exportar resultados para JSON")
+@click.option(
+    "-q",
+    "--quantization",
+    type=click.Choice(["fp32", "fp16", "int8", "int4"]),
+    default="fp16",
+    show_default=True,
+    help="Model precision/quantization / Precisão do modelo",
+)
+@click.option(
+    "--mode",
+    type=click.Choice(["theoretical", "conservative", "production"]),
+    default="conservative",
+    show_default=True,
+    help="Calculation mode / Modo de cálculo",
+)
+@click.option(
+    "--params-b", type=int, metavar="BILLIONS", help="Generic model: parameters in billions (e.g., 8, 70, 405)"
+)
+@click.option("--kv-cache", type=float, metavar="MB_PER_TOKEN", help="Generic model: KV cache in MB per token FP16")
+@click.option("--model-name", type=str, metavar="NAME", help="Generic model: custom name for display")
+@click.option(
+    "--optimize-config",
+    is_flag=True,
+    help="Show optimal layer offload configuration / Mostrar configuração ótima de offload",
+)
+@click.option(
+    "--cpu-offload", is_flag=True, help="Enable CPU offload calculations / Habilitar cálculos de offload de CPU"
+)
+@click.option(
+    "--system-ram",
+    type=float,
+    default=32.0,
+    show_default=True,
+    metavar="GB",
+    help="System RAM available in GB (for CPU offload)",
+)
+@click.option(
+    "--pcie-gen",
+    type=click.Choice(["3.0", "4.0", "5.0"]),
+    default="4.0",
+    show_default=True,
+    help="PCIe generation for bandwidth estimation",
+)
+@click.option("--multi-gpu", is_flag=True, help="Enable multi-GPU mode / Habilitar modo multi-GPU")
+@click.option("--gpu-config", type=str, metavar="CONFIG", help="Multi-GPU configuration (e.g., '2x4090,1x3090')")
+@click.option(
+    "--multi-gpu-mode",
+    type=click.Choice(["tensor", "pipeline"]),
+    default="tensor",
+    show_default=True,
+    help="Multi-GPU parallelism mode",
+)
+@click.option("--gguf-file", type=str, metavar="FILENAME", help="GGUF filename to auto-detect quantization")
+@click.option(
+    "--format",
+    "model_format_name",
+    type=click.Choice(["fp16", "gguf", "exl2", "gptq", "awq"]),
+    default="fp16",
+    show_default=True,
+    help="Model format for overhead calculation",
+)
+def cli(**kwargs):
+    """LLM Local Inference Viability Calculator.
 
-    Parse argumentos da CLI.
+    Examples:
+
+      local-inference-calculator --context 4096
+
+      local-inference-calculator --model 7 --context 8192
+
+      local-inference-calculator -m 70 -c 16384 -q int4
+
+      local-inference-calculator --params-b 405 --context 8192 --quantization int4
     """
-    parser = argparse.ArgumentParser(
-        description="LLM Local Inference Viability Calculator / "
-                    "Calculadora de viabilidade de inferência local de LLMs",
-        formatter_class=argparse.RawDescriptionHelpFormatter,
-        epilog="""
-Examples / Exemplos:
-  python main.py --context 4096
-  python main.py -c 8192 --gpu-type consumer
-  python main.py -c 4096 --only-runs --export-json results.json
-  python main.py -c 16384 --group-gpu
-  python main.py -c 8192 --quantization int4
-  python main.py --list-models
-  python main.py --model 7 --context 8192
-  python main.py -m 70 -c 16384 -q int4
-  python main.py -m 70 -c 8192 -q int4 --mode production
-
-Generic model / Modelo genérico:
-  python main.py --params-b 405 --context 8192 --quantization int4
-  python main.py --params-b 405 --kv-cache 15.0 --context 8192
-  python main.py --params-b 405 --model-name "Llama 3.1 405B" -c 8192
-
-Available precisions / Precisões disponíveis:
-  fp32 - Float32 (4 bytes/param) - Original precision, highest quality
-  fp16 - Float16 (2 bytes/param) - Half VRAM, excellent quality
-  int8 - Int8 (1 byte/param) - Quarter VRAM, small quality loss
-  int4 - Int4 (0.5 byte/param) - Eighth VRAM, noticeable quality loss
-
-Calculation modes / Modos de cálculo:
-  theoretical - Ideal minimum (batch=1, no padding/alignment)
-  conservative - Default mode with 10%% buffer (minimal overhead)
-  production  - Real-world serving (batch>1, fragmentation) with 25%% buffer
-        """,
-    )
-
-    parser.add_argument(
-        "-c", "--context",
-        type=int,
-        default=4096,
-        help="Context size in tokens / Tamanho do contexto em tokens (default: 4096)",
-    )
-
-    parser.add_argument(
-        "--list-models",
-        action="store_true",
-        help="List all available models / Listar todos os modelos disponíveis",
-    )
-
-    parser.add_argument(
-        "-m", "--model",
-        type=float,
-        metavar="SIZE",
-        help="Model size in billions of parameters (e.g., 0.6, 7, 13, 70) / "
-             "Tamanho do modelo em bilhões de parâmetros",
-    )
-
-    parser.add_argument(
-        "--gpu-type",
-        choices=["consumer", "datacenter", "all"],
-        default="all",
-        help="GPU type to consider / Tipo de GPU a considerar (default: all)",
-    )
-
-    parser.add_argument(
-        "--only-runs",
-        action="store_true",
-        help="Show only running combinations / Mostrar apenas combinações que rodam",
-    )
-
-    parser.add_argument(
-        "--group-gpu",
-        action="store_true",
-        help="Group results by GPU instead of model / "
-             "Agrupar resultados por GPU em vez de por modelo",
-    )
-
-    parser.add_argument(
-        "--summary",
-        choices=["model", "gpu", "both", "none"],
-        default="both",
-        help="Summary type to show / Tipo de resumo a mostrar (default: both)",
-    )
-
-    parser.add_argument(
-        "--export-csv",
-        metavar="FILE",
-        help="Export results to CSV / Exportar resultados para CSV",
-    )
-
-    parser.add_argument(
-        "--export-json",
-        metavar="FILE",
-        help="Export results to JSON / Exportar resultados para JSON",
-    )
-
-    parser.add_argument(
-        "-q", "--quantization",
-        choices=["fp32", "fp16", "int8", "int4"],
-        default="fp16",
-        help="Model precision/quantization / Precisão do modelo (fp32, fp16, int8, int4)",
-    )
-
-    parser.add_argument(
-        "--mode",
-        choices=["theoretical", "conservative", "production"],
-        default="conservative",
-        help="Calculation mode / Modo de cálculo "
-             "(theoretical=ideal minimum, conservative=default, production=real-world serving)",
-    )
-
-    # Generic model parameters / Parâmetros de modelo genérico
-    parser.add_argument(
-        "--params-b",
-        type=int,
-        metavar="BILLIONS",
-        help="Generic model: parameters in billions (e.g., 8, 70, 405) / "
-             "Modelo genérico: parâmetros em bilhões (ex: 8, 70, 405)",
-    )
-
-    parser.add_argument(
-        "--kv-cache",
-        type=float,
-        metavar="MB_PER_TOKEN",
-        help="Generic model: KV cache in MB per token FP16 (e.g., 0.6, 1.0, 4.27) / "
-             "Modelo genérico: KV cache em MB por token FP16 (ex: 0.6, 1.0, 4.27)",
-    )
-
-    parser.add_argument(
-        "--model-name",
-        type=str,
-        metavar="NAME",
-        help="Generic model: custom name for display / "
-             "Modelo genérico: nome personalizado para exibição",
-    )
-
-    # -----------------------------------------------------------------------
-    # NEW: Advanced configuration options
-    # NOVOS: Opções de configuração avançadas
-    # -----------------------------------------------------------------------
-
-    parser.add_argument(
-        "--optimize-config",
-        action="store_true",
-        help="Show optimal layer offload configuration / "
-             "Mostrar configuração ótima de offload de camadas",
-    )
-
-    parser.add_argument(
-        "--cpu-offload",
-        action="store_true",
-        help="Enable CPU offload calculations / "
-             "Habilitar cálculos de offload de CPU",
-    )
-
-    parser.add_argument(
-        "--system-ram",
-        type=float,
-        default=32.0,
-        metavar="GB",
-        help="System RAM available in GB (for CPU offload) / "
-             "RAM do sistema disponível em GB (para offload de CPU) (default: 32.0)",
-    )
-
-    parser.add_argument(
-        "--pcie-gen",
-        choices=["3.0", "4.0", "5.0"],
-        default="4.0",
-        help="PCIe generation for bandwidth estimation / "
-             "Geração PCIe para estimativa de largura de banda (default: 4.0)",
-    )
-
-    parser.add_argument(
-        "--multi-gpu",
-        action="store_true",
-        help="Enable multi-GPU mode / "
-             "Habilitar modo multi-GPU",
-    )
-
-    parser.add_argument(
-        "--gpu-config",
-        type=str,
-        metavar="CONFIG",
-        help="Multi-GPU configuration (e.g., '2x4090,1x3090') / "
-             "Configuração multi-GPU (ex: '2x4090,1x3090')",
-    )
-
-    parser.add_argument(
-        "--multi-gpu-mode",
-        choices=["tensor", "pipeline"],
-        default="tensor",
-        help="Multi-GPU parallelism mode / "
-             "Modo de paralelismo multi-GPU (default: tensor)",
-    )
-
-    parser.add_argument(
-        "--gguf-file",
-        type=str,
-        metavar="FILENAME",
-        help="GGUF filename to auto-detect quantization / "
-             "Nome de arquivo GGUF para auto-detectar quantização",
-    )
-
-    parser.add_argument(
-        "--format",
-        choices=["fp16", "gguf", "exl2", "gptq", "awq"],
-        default="fp16",
-        help="Model format for overhead calculation / "
-             "Formato do modelo para cálculo de overhead (default: fp16)",
-    )
-
-    return parser.parse_args()
+    kwargs["format"] = kwargs.pop("model_format_name")
+    run(SimpleNamespace(**kwargs))
 
 
-def main():
-    """Main CLI function.
+def run(args: SimpleNamespace) -> None:
+    """Run the CLI with parsed options.
 
-    Função principal da CLI.
+    Executa a CLI com opções analisadas.
     """
-    args = parse_args()
 
     # Handle --list-models
     if args.list_models:
@@ -832,8 +722,7 @@ def main():
     # Validate context
     # Validar contexto
     if args.context <= 0:
-        print("Error: context_tokens must be positive / Erro: context_tokens deve ser positivo",
-              file=sys.stderr)
+        print("Error: context_tokens must be positive / Erro: context_tokens deve ser positivo", file=sys.stderr)
         sys.exit(1)
 
     # Map quantization (needed early for GGUF detection)
@@ -941,7 +830,6 @@ def main():
     # Handle --model (specific model) or --params-b (generic model)
     # Lidar com --model (modelo específico) ou --params-b (modelo genérico)
     model = None
-    use_generic = False
 
     # Generic model takes precedence / Modelo genérico tem precedência
     if args.params_b is not None:
@@ -957,8 +845,6 @@ def main():
             precision_default="fp16",
             kv_cache_mb_per_token=kv_cache,
         )
-        use_generic = True
-
     elif args.model:
         model = get_model_by_size(args.model)
         if not model:
@@ -967,7 +853,7 @@ def main():
             print(f"\n{Colors.warn('Model size ' + str(args.model) + 'B not found in database.')}")
             print(f"{Colors.dim('Using generic model with estimated KV cache.')}")
             print(f"Use --params-b {args.model} --kv-cache <value> for custom KV cache.")
-            print(f"Or use --list-models to see all available models.\n")
+            print("Or use --list-models to see all available models.\n")
 
             # Create generic model as fallback / Criar modelo genérico como fallback
             kv_cache = args.kv_cache if args.kv_cache else estimate_kv_cache(args.model)
@@ -978,8 +864,6 @@ def main():
                 precision_default="fp16",
                 kv_cache_mb_per_token=kv_cache,
             )
-            use_generic = True
-
     if model:
         # Show VRAM breakdown for the specific model
         print_model_vram_breakdown(model, args.context, quantization, calculation_mode)
@@ -1018,9 +902,11 @@ def main():
                 for gpu in sorted(get_all_gpus(), key=lambda g: g.vram_gb, reverse=True):
                     result = layer_calc.calculate_optimal_offload(model, gpu, args.context)
                     status_color = Colors.ok if result.status == "full_gpu" else Colors.warning
-                    print(f"  {gpu.name:<25} ({gpu.vram_gb:3} GB): "
-                          f"{result.layers_on_gpu}/{result.total_layers} layers on GPU "
-                          f"({status_color(result.status)}){Colors.RESET}")
+                    print(
+                        f"  {gpu.name:<25} ({gpu.vram_gb:3} GB): "
+                        f"{result.layers_on_gpu}/{result.total_layers} layers on GPU "
+                        f"({status_color(result.status)}){Colors.RESET}"
+                    )
 
                 print("\n" + "=" * 70)
                 sys.exit(0)
@@ -1040,18 +926,16 @@ def main():
         not_runnable = [r for r in results if r.status != Status.RUNS]
 
         if runnable:
-            print(f"\n✓ RUNS on these GPUs:")
+            print("\n✓ RUNS on these GPUs:")
             for r in sorted(runnable, key=lambda x: x.gpu_vram_gb):
                 free_pct = r.vram_free_percent
-                print(f"  {r.gpu_name:<25} ({r.gpu_vram_gb:3} GB) - "
-                      f"{free_pct:4.1f}% free")
+                print(f"  {r.gpu_name:<25} ({r.gpu_vram_gb:3} GB) - {free_pct:4.1f}% free")
 
         if not_runnable:
-            print(f"\n✗ DOESN'T RUN - needs more VRAM:")
+            print("\n✗ DOESN'T RUN - needs more VRAM:")
             sorted_by_need = sorted(not_runnable, key=lambda x: -(x.required_vram_gb - x.gpu_vram_gb))[:5]
             for r in sorted_by_need:
-                print(f"  {r.gpu_name:<25} ({r.gpu_vram_gb:3} GB) - "
-                      f"needs {r.required_vram_gb:.1f} GB")
+                print(f"  {r.gpu_name:<25} ({r.gpu_vram_gb:3} GB) - needs {r.required_vram_gb:.1f} GB")
 
             # Suggest layer offload option
             print(f"\n{Colors.info('💡 Tip: Use --optimize-config to see layer offload options')}")
@@ -1104,8 +988,8 @@ def main():
     print("LLM LOCAL INFERENCE VIABILITY CALCULATOR")
     print("CALCULADORA DE VIABILIDADE DE INFERÊNCIA LOCAL DE LLMs")
     print("=" * 70)
-    print(f"\nConfiguration / Configuração:")
-    print(f"  • Batch size: 1 (inference)")
+    print("\nConfiguration / Configuração:")
+    print("  • Batch size: 1 (inference)")
     print(f"  • Context: / Contexto: {args.context:,} tokens")
     print(f"  • Quantization: / Quantização: {Colors.bold(args.quantization.upper())}")
     print(f"  • Mode: / Modo: {args.mode}")
@@ -1139,10 +1023,7 @@ def main():
     # Warning for 24GB GPUs running near limit
     # Aviso para GPUs de 24GB rodando no limite
     tight_24gb = [
-        r for r in results
-        if r.status == Status.RUNS
-        and r.gpu_vram_gb == 24
-        and 22 <= r.required_vram_gb <= 24
+        r for r in results if r.status == Status.RUNS and r.gpu_vram_gb == 24 and 22 <= r.required_vram_gb <= 24
     ]
     if tight_24gb:
         print("\n" + "⚠️  " * 12)
@@ -1152,17 +1033,22 @@ def main():
         print(f"  {Colors.warning('• Speculative decoding adds ~30-50% memory')}")
         print(f"  {Colors.warning('• Tool calling / function calling adds overhead')}")
         print(f"\n{Colors.DIM}  Assumptions for calculations above:{Colors.RESET}")
-        print(f"    Memory model: PyTorch allocator (HF Transformers, vLLM)")
-        print(f"    KV cache: FP16 (quantized KV is experimental/exclusive)")
-        print(f"    batch_size = 1 (no batching)")
-        print(f"    No LoRA adapters active")
-        print(f"    No speculative decoding")
-        print(f"    No tool calling overhead")
+        print("    Memory model: PyTorch allocator (HF Transformers, vLLM)")
+        print("    KV cache: FP16 (quantized KV is experimental/exclusive)")
+        print("    batch_size = 1 (no batching)")
+        print("    No LoRA adapters active")
+        print("    No speculative decoding")
+        print("    No tool calling overhead")
         print(f"  {Colors.DIM}Note: TensorRT-LLM, llama.cpp, EXL2 may have different behavior{Colors.RESET}")
         print()
 
     print("\n" + "=" * 70)
     print()
+
+
+def main() -> None:
+    """Console-script compatible entry point."""
+    cli(standalone_mode=True)
 
 
 if __name__ == "__main__":

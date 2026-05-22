@@ -16,29 +16,31 @@ __version__ = "0.2.0"
 
 # Core imports
 # Importações principais
-from models import LLMModel, get_all_models
-from gpus import GPU, get_all_gpus
 from calculator import (
-    VRAMCalculator,
-    Quantization,
-    CalculationMode,
-    InferenceResult,
-    Status,
     CalculationBreakdown,
+    CalculationMode,
+    CPUOffloadCalculator,
+    CPUOffloadResult,
+    InferenceResult,
+    LayerOffloadCalculator,
+    LayerOffloadResult,
+    Quantization,
+    Status,
+    VRAMCalculator,
 )
 
 # Advanced features
 # Recursos avançados
-from formats import ModelFormat, detect_gguf_quantization, GGUFInfo
-from calculator import LayerOffloadCalculator, LayerOffloadResult
-from calculator import CPUOffloadCalculator, CPUOffloadResult
+from formats import GGUFInfo, ModelFormat, detect_gguf_quantization
+from gpus import GPU, get_all_gpus
+from models import LLMModel, get_all_models
 from multi_gpu import (
-    MultiGPUConfig,
     MultiGPUCalculator,
+    MultiGPUConfig,
     MultiGPUMode,
     MultiGPUResult,
-    parse_gpu_config_string,
     create_multi_gpu_config,
+    parse_gpu_config_string,
 )
 
 __all__ = [
@@ -53,18 +55,15 @@ __all__ = [
     "CalculationBreakdown",
     "get_all_models",
     "get_all_gpus",
-
     # Model formats
     "ModelFormat",
     "detect_gguf_quantization",
     "GGUFInfo",
-
     # Advanced calculators
     "LayerOffloadCalculator",
     "LayerOffloadResult",
     "CPUOffloadCalculator",
     "CPUOffloadResult",
-
     # Multi-GPU
     "MultiGPUConfig",
     "MultiGPUCalculator",

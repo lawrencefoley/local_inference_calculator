@@ -14,7 +14,7 @@ You have an RTX 3060 (8GB) and want to know which models run.
 
 .. code-block:: bash
 
-   python main.py -c 4096 --gpu-type consumer --only-runs
+   uv run local-inference-calculator -c 4096 --gpu-type consumer --only-runs
 
 Saída esperada:
 
@@ -36,7 +36,7 @@ You have a RTX 4090 (24GB) and want to run a 7B model with larger context.
 
 .. code-block:: bash
 
-   python main.py -m 7 -c 16384
+   uv run local-inference-calculator -m 7 -c 16384
 
 Isso mostrará se 7B com 16K contexto cabe em 24GB.
 
@@ -52,7 +52,7 @@ Comparing A100 (40GB) vs A100 (80GB) for 70B model.
 
 .. code-block:: bash
 
-   python main.py -m 70 -c 8192 -q int4 --gpu-type datacenter
+   uv run local-inference-calculator -m 70 -c 8192 -q int4 --gpu-type datacenter
 
 
 Cenário 4: Planejamento de Contexto Longo
@@ -64,7 +64,7 @@ Projecting VRAM requirements for 32K context.
 
 .. code-block:: bash
 
-   python main.py -m 13 -c 32768
+   uv run local-inference-calculator -m 13 -c 32768
 
 A ferramenta mostrará o KV cache projetado para contextos maiores.
 
@@ -80,7 +80,7 @@ Exporting all combinations for later analysis.
 
 .. code-block:: bash
 
-   python main.py -c 8192 --export-json analysis.json
+   uv run local-inference-calculator -c 8192 --export-json analysis.json
 
 Ou em CSV para planilhas:
 
@@ -88,7 +88,7 @@ Or in CSV for spreadsheets:
 
 .. code-block:: bash
 
-   python main.py -c 8192 --export-csv analysis.csv
+   uv run local-inference-calculator -c 8192 --export-csv analysis.csv
 
 
 Cenário 6: Múltiplos Modelos
@@ -103,7 +103,7 @@ Checking multiple model sizes at once.
    # Shell script para verificar todos os tamanhos
    for size in 7 13 34 70; do
        echo "=== Modelo ${size}B ==="
-       python main.py -m $size -c 8192
+       uv run local-inference-calculator -m $size -c 8192
    done
 
 
@@ -118,7 +118,7 @@ Processando múltiplos contextos:
 .. code-block:: bash
 
    for ctx in 4096 8192 16384 32768; do
-       python main.py -m 13 -c $ctx --export-json results_${ctx}.json
+       uv run local-inference-calculator -m 13 -c $ctx --export-json results_${ctx}.json
    done
 
 Comparação de Quantização
@@ -128,9 +128,9 @@ Comparando diferentes níveis de quantização:
 
 .. code-block:: bash
 
-   python main.py -m 70 -c 8192 -q fp16   # ~175 GB
-   python main.py -m 70 -c 8192 -q int8   # ~105 GB
-   python main.py -m 70 -c 8192 -q int4   # ~72 GB
+   uv run local-inference-calculator -m 70 -c 8192 -q fp16   # ~175 GB
+   uv run local-inference-calculator -m 70 -c 8192 -q int8   # ~105 GB
+   uv run local-inference-calculator -m 70 -c 8192 -q int4   # ~72 GB
 
 
 Script de Exemplo Python
@@ -179,7 +179,7 @@ Calculate optimal GPU layer distribution for a model that doesn't fully fit in V
 
 .. code-block:: bash
 
-   python main.py --model 70 --context 8192 --optimize-config --quantization int4
+   uv run local-inference-calculator --model 70 --context 8192 --optimize-config --quantization int4
 
 Saída:
 
@@ -223,7 +223,7 @@ Analyze hybrid GPU+CPU inference with PCIe bandwidth considerations:
 
 .. code-block:: bash
 
-   python main.py --model 13 --context 8192 --cpu-offload --system-ram 64 --pcie-gen 4.0
+   uv run local-inference-calculator --model 13 --context 8192 --cpu-offload --system-ram 64 --pcie-gen 4.0
 
 Saída:
 
@@ -269,7 +269,7 @@ Calculate tensor parallelism across multiple GPUs:
 
 .. code-block:: bash
 
-   python main.py --params-b 405 --context 8192 --quantization int4 --multi-gpu --gpu-config "2x4090,1x3090"
+   uv run local-inference-calculator --params-b 405 --context 8192 --quantization int4 --multi-gpu --gpu-config "2x4090,1x3090"
 
 Saída:
 
@@ -309,7 +309,7 @@ Auto-detect quantization from GGUF filename:
 
 .. code-block:: bash
 
-   python main.py --gguf-file "llama-2-7b.Q4_K_M.gguf" --context 4096
+   uv run local-inference-calculator --gguf-file "llama-2-7b.Q4_K_M.gguf" --context 4096
 
 Saída:
 

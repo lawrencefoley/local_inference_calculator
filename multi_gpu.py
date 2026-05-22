@@ -10,14 +10,13 @@ Implementa cálculos para paralelismo tensor e pipeline paralelo
 em múltiplas GPUs, incluindo configurações heterogêneas.
 """
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from enum import Enum
-from typing import List, Dict, Optional
 
+from calculator import BYTES_PER_PARAM, OVERHEAD_FACTOR, Quantization
+from formats import FORMAT_OVERHEAD, ModelFormat
 from gpus import GPU
 from models import LLMModel
-from calculator import Quantization, BYTES_PER_PARAM, OVERHEAD_FACTOR
-from formats import ModelFormat, FORMAT_OVERHEAD
 
 
 class MultiGPUMode(Enum):
@@ -45,7 +44,7 @@ class MultiGPUConfig:
         communication_overhead: Additional VRAM % for inter-GPU communication
     """
 
-    gpus: List[GPU]
+    gpus: list[GPU]
     mode: MultiGPUMode = MultiGPUMode.TENSOR_PARALLEL
     communication_overhead: float = 0.08  # 8% overhead for communication buffers
 
@@ -118,14 +117,14 @@ class MultiGPUResult:
     """
 
     total_vram_required: float
-    per_gpu_allocation: Dict[str, MultiGPUAllocation]
-    layers_per_gpu: Dict[str, int]
-    shard_per_gpu: Dict[str, float]
+    per_gpu_allocation: dict[str, MultiGPUAllocation]
+    layers_per_gpu: dict[str, int]
+    shard_per_gpu: dict[str, float]
     status: str  # "runs", "doesnt_run", "needs_more_gpus"
-    bottleneck_gpu: Optional[str]
+    bottleneck_gpu: str | None
     communication_overhead_gb: float
     effective_utilization: float
-    recommended_framework_config: Dict[str, str]
+    recommended_framework_config: dict[str, str]
 
 
 class MultiGPUCalculator:
@@ -222,8 +221,8 @@ class MultiGPUCalculator:
         if not config.is_homogeneous:
             # For heterogeneous: allocate based on VRAM capacity
             total_vram = config.total_vram
-            per_gpu_allocation: Dict[str, MultiGPUAllocation] = {}
-            shard_per_gpu: Dict[str, float] = {}
+            per_gpu_allocation: dict[str, MultiGPUAllocation] = {}
+            shard_per_gpu: dict[str, float] = {}
 
             for gpu in config.gpus:
                 # Allocate proportionally to VRAM capacity
@@ -274,7 +273,7 @@ class MultiGPUCalculator:
         recommended_framework_config = {
             "tensor_parallel_size": str(config.gpu_count),
             "mode": "tensor_parallel",
-            "llama_cpp": f"--split-mode layer (or use manual GPU selection)",
+            "llama_cpp": "--split-mode layer (or use manual GPU selection)",
             "vllm": f"--tensor-parallel-size {config.gpu_count}",
         }
 
@@ -330,8 +329,8 @@ class MultiGPUCalculator:
 
         # Distribute layers based on VRAM capacity
         total_vram = config.total_vram
-        per_gpu_allocation: Dict[str, MultiGPUAllocation] = {}
-        layers_per_gpu: Dict[str, int] = {}
+        per_gpu_allocation: dict[str, MultiGPUAllocation] = {}
+        layers_per_gpu: dict[str, int] = {}
 
         remaining_layers = num_layers
 
@@ -382,11 +381,10 @@ class MultiGPUCalculator:
         effective_utilization = total_used / config.total_vram if config.total_vram > 0 else 0
 
         # Framework configuration hints
-        layer_config = ",".join(f"{v}" for v in layers_per_gpu.values())
         recommended_framework_config = {
             "num_pipeline_stages": str(config.gpu_count),
             "mode": "pipeline_parallel",
-            "llama_cpp": f"--split-mode layer (layers distributed by VRAM)",
+            "llama_cpp": "--split-mode layer (layers distributed by VRAM)",
             "vllm": f"--pipeline-parallel-size {config.gpu_count}",
         }
 
@@ -426,7 +424,7 @@ class MultiGPUCalculator:
             return self.calculate_pipeline_parallel(model, config, context_tokens)
 
 
-def parse_gpu_config_string(config_str: str, gpu_database: List[GPU]) -> List[GPU]:
+def parse_gpu_config_string(config_str: str, gpu_database: list[GPU]) -> list[GPU]:
     """Parse a GPU configuration string into a list of GPUs.
 
     Analisa uma string de configuração de GPU em uma lista de GPUs.
@@ -461,7 +459,7 @@ def parse_gpu_config_string(config_str: str, gpu_database: List[GPU]) -> List[GP
         part = part.strip()
 
         # Match "Nx GPU_NAME" or just "GPU_NAME"
-        match = re.match(r'(\d+)x\s*(.+)', part, re.IGNORECASE)
+        match = re.match(r"(\d+)x\s*(.+)", part, re.IGNORECASE)
 
         if match:
             count = int(match.group(1))
@@ -494,9 +492,9 @@ def parse_gpu_config_string(config_str: str, gpu_database: List[GPU]) -> List[GP
 
 
 def create_multi_gpu_config(
-    gpu_names: List[str],
+    gpu_names: list[str],
     mode: MultiGPUMode = MultiGPUMode.TENSOR_PARALLEL,
-    gpu_database: List[GPU] = None,
+    gpu_database: list[GPU] = None,
 ) -> MultiGPUConfig:
     """Create a MultiGPUConfig from a list of GPU names.
 
@@ -515,6 +513,7 @@ def create_multi_gpu_config(
     """
     if gpu_database is None:
         from gpus import get_all_gpus
+
         gpu_database = get_all_gpus()
 
     gpu_map = {gpu.name.lower(): gpu for gpu in gpu_database}
