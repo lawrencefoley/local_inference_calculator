@@ -52,14 +52,14 @@ Ou com contexto maior:
 Contexto máximo para um limite de VRAM
 --------------------------------------
 
-Use ``--vram-gb`` com uma quantização para ver quais modelos cabem e o contexto máximo estimado:
+Use ``--vram`` com uma quantização para ver quais modelos cabem e o contexto máximo estimado:
 
 .. code-block:: bash
 
-   uv run llmfit --vram-gb 24 --quantization int4
-   uv run llmfit --vram-gb 16 --quantization fp16 --mode conservative
+   uv run llmfit --vram 24 --quantization int4
+   uv run llmfit --vram 16 --quantization fp16 --mode conservative
 
-Combine com ``--model``, ``--params-b`` ou ``--config-json`` para verificar um único modelo.
+Combine com ``--model``, ``--params-b`` ou ``--config`` para verificar um único modelo.
 
 Hugging Face config.json
 ------------------------
@@ -68,7 +68,7 @@ Derive metadados de KV cache a partir de um ``config.json`` do Hugging Face:
 
 .. code-block:: bash
 
-   uv run llmfit --config-json path/to/config.json --params-b 7 --context 8192
+   uv run llmfit --config path/to/config.json --params-b 7 --context 8192
 
 Se o config não incluir a contagem de parâmetros, informe com ``--params-b``. Use ``--model-name`` para sobrescrever o nome exibido.
 
@@ -105,7 +105,7 @@ Otimização de Offload de Camadas
 
 .. code-block:: bash
 
-   --optimize-config      Mostrar configuração ótima de offload de camadas
+   --optimize      Mostrar configuração ótima de offload de camadas
 
 Calcula quantas camadas transformer cabem na VRAM da GPU, exibindo:
 
@@ -119,8 +119,8 @@ Análise de Offload de CPU
 
 .. code-block:: bash
 
-   --cpu-offload          Habilitar cálculos de offload de CPU
-   --system-ram GB        RAM do sistema disponível em GB (padrão: 32.0)
+   --cpu          Habilitar cálculos de offload de CPU
+   --ram GB        RAM do sistema disponível em GB (padrão: 32.0)
    --pcie-gen GEN         Geração PCIe: 3.0, 4.0 ou 5.0 (padrão: 4.0)
 
 Calcula configuração de inferência híbrida GPU+CPU:
@@ -135,9 +135,9 @@ Suporte Multi-GPU
 
 .. code-block:: bash
 
-   --multi-gpu            Habilitar modo multi-GPU
-   --gpu-config CONFIG    Configuração multi-GPU (ex: "2x4090,1x3090")
-   --multi-gpu-mode MODE  Modo de paralelismo: tensor ou pipeline (padrão: tensor)
+   --multi            Habilitar modo multi-GPU
+   --gpus CONFIG    Configuração multi-GPU (ex: "2x4090,1x3090")
+   --multi-mode MODE  Modo de paralelismo: tensor ou pipeline (padrão: tensor)
 
 Formato de configuração:
 

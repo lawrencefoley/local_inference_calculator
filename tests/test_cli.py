@@ -42,7 +42,7 @@ def test_calculate_kv_cache_from_config() -> None:
 
 
 def test_vram_gb_command() -> None:
-    result = CliRunner().invoke(cli, ["--vram-gb", "24", "--quantization", "int4"])
+    result = CliRunner().invoke(cli, ["--vram", "24", "--quantization", "int4"])
 
     assert result.exit_code == 0
     assert "MAX CONTEXT BY MODEL" in result.output
@@ -68,7 +68,7 @@ def test_config_json_command(tmp_path) -> None:
 
     result = CliRunner().invoke(
         cli,
-        ["--config-json", str(config_path), "--params-b", "7", "--context", "1024", "--summary", "none"],
+        ["--config", str(config_path), "--params-b", "7", "--context", "1024", "--summary", "none"],
     )
 
     assert result.exit_code == 0
@@ -94,7 +94,7 @@ def test_config_json_vram_gb_command(tmp_path) -> None:
 
     result = CliRunner().invoke(
         cli,
-        ["--config-json", str(config_path), "--params-b", "7", "--vram-gb", "24", "--quantization", "int4"],
+        ["--config", str(config_path), "--params-b", "7", "--vram", "24", "--quantization", "int4"],
     )
 
     assert result.exit_code == 0

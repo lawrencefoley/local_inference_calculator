@@ -55,21 +55,21 @@ This shows:
 
 ### Find Max Context for a VRAM Budget
 
-Use `--vram-gb` with a quantization to see which models fit and their estimated maximum context:
+Use `--vram` with a quantization to see which models fit and their estimated maximum context:
 
 ```bash
-uv run llmfit --vram-gb 24 --quantization int4
-uv run llmfit --vram-gb 16 --quantization fp16 --mode conservative
+uv run llmfit --vram 24 --quantization int4
+uv run llmfit --vram 16 --quantization fp16 --mode conservative
 ```
 
-You can combine it with `--model`, `--params-b`, or `--config-json` to check a single model.
+You can combine it with `--model`, `--params-b`, or `--config` to check a single model.
 
 ### Add a Model from Hugging Face `config.json`
 
 You can derive model metadata, including KV cache MB/token, from a Hugging Face `config.json`:
 
 ```bash
-uv run llmfit --config-json path/to/config.json --params-b 7 --context 8192
+uv run llmfit --config path/to/config.json --params-b 7 --context 8192
 ```
 
 The parser reads common fields such as `num_hidden_layers`, `hidden_size`, `num_attention_heads`, and `num_key_value_heads`. If the config does not include a parameter count, pass it with `--params-b`. Use `--model-name` to override the display name.
@@ -81,7 +81,7 @@ The parser reads common fields such as `num_hidden_layers`, `hidden_size`, `num_
 Calculate optimal GPU layer offload for models that don't fully fit in VRAM:
 
 ```bash
-uv run llmfit --model 70 --context 8192 --optimize-config --quantization int4
+uv run llmfit --model 70 --context 8192 --optimize --quantization int4
 ```
 
 This shows:
@@ -95,7 +95,7 @@ This shows:
 Calculate hybrid GPU+CPU inference configuration:
 
 ```bash
-uv run llmfit --model 70 --context 8192 --cpu-offload --system-ram 64 --pcie-gen 4.0
+uv run llmfit --model 70 --context 8192 --cpu --ram 64 --pcie-gen 4.0
 ```
 
 This shows:
@@ -109,8 +109,8 @@ This shows:
 Calculate tensor parallelism or pipeline parallelism across multiple GPUs:
 
 ```bash
-uv run llmfit --params-b 405 --context 8192 --quantization int4 --multi-gpu --gpu-config "2x4090,1x3090"
-uv run llmfit --params-b 405 --multi-gpu --gpu-config "3x3090" --multi-gpu-mode pipeline
+uv run llmfit --params-b 405 --context 8192 --quantization int4 --multi --gpus "2x4090,1x3090"
+uv run llmfit --params-b 405 --multi --gpus "3x3090" --multi-mode pipeline
 ```
 
 Supported configurations:

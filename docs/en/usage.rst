@@ -50,14 +50,14 @@ Or with a larger context:
 Max Context for a VRAM Budget
 -----------------------------
 
-Use ``--vram-gb`` with a quantization to see which models fit and their estimated maximum context:
+Use ``--vram`` with a quantization to see which models fit and their estimated maximum context:
 
 .. code-block:: bash
 
-   uv run llmfit --vram-gb 24 --quantization int4
-   uv run llmfit --vram-gb 16 --quantization fp16 --mode conservative
+   uv run llmfit --vram 24 --quantization int4
+   uv run llmfit --vram 16 --quantization fp16 --mode conservative
 
-Combine it with ``--model``, ``--params-b``, or ``--config-json`` to check a single model.
+Combine it with ``--model``, ``--params-b``, or ``--config`` to check a single model.
 
 Hugging Face config.json
 ------------------------
@@ -66,7 +66,7 @@ Derive KV cache metadata from a Hugging Face ``config.json``:
 
 .. code-block:: bash
 
-   uv run llmfit --config-json path/to/config.json --params-b 7 --context 8192
+   uv run llmfit --config path/to/config.json --params-b 7 --context 8192
 
 If the config does not include a parameter count, pass it with ``--params-b``. Use ``--model-name`` to override the display name.
 
@@ -103,7 +103,7 @@ Layer Offload Optimization
 
 .. code-block:: bash
 
-   --optimize-config      Show optimal layer offload configuration
+   --optimize      Show optimal layer offload configuration
 
 Calculates how many transformer layers can fit in GPU VRAM, displaying:
 
@@ -117,8 +117,8 @@ CPU Offload Analysis
 
 .. code-block:: bash
 
-   --cpu-offload          Enable CPU offload calculations
-   --system-ram GB        System RAM available in GB (default: 32.0)
+   --cpu          Enable CPU offload calculations
+   --ram GB        System RAM available in GB (default: 32.0)
    --pcie-gen GEN         PCIe generation: 3.0, 4.0, or 5.0 (default: 4.0)
 
 Calculates hybrid GPU+CPU inference configuration:
@@ -133,9 +133,9 @@ Multi-GPU Support
 
 .. code-block:: bash
 
-   --multi-gpu            Enable multi-GPU mode
-   --gpu-config CONFIG    Multi-GPU configuration (e.g., "2x4090,1x3090")
-   --multi-gpu-mode MODE  Parallelism mode: tensor or pipeline (default: tensor)
+   --multi            Enable multi-GPU mode
+   --gpus CONFIG    Multi-GPU configuration (e.g., "2x4090,1x3090")
+   --multi-mode MODE  Parallelism mode: tensor or pipeline (default: tensor)
 
 Configuration format:
 

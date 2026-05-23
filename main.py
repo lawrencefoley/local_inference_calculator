@@ -778,28 +778,32 @@ def create_model_from_config_json(
 )
 @click.option("--kv-cache", type=float, metavar="MB_PER_TOKEN", help="Generic model: KV cache in MB per token FP16")
 @click.option(
-    "--vram-gb",
+    "--vram",
+    "vram_gb",
     type=float,
     metavar="GB",
     help="VRAM budget to calculate each model's maximum context length",
 )
 @click.option(
-    "--config-json",
+    "--config",
+    "config_json",
     type=click.Path(exists=True, dir_okay=False, path_type=Path),
     metavar="FILE",
     help="Hugging Face config.json to derive KV cache metadata",
 )
 @click.option("--model-name", type=str, metavar="NAME", help="Generic model: custom name for display")
 @click.option(
-    "--optimize-config",
+    "--optimize",
+    "optimize_config",
     is_flag=True,
     help="Show optimal layer offload configuration / Mostrar configuração ótima de offload",
 )
 @click.option(
-    "--cpu-offload", is_flag=True, help="Enable CPU offload calculations / Habilitar cálculos de offload de CPU"
+    "--cpu", "cpu_offload", is_flag=True, help="Enable CPU offload calculations / Habilitar cálculos de offload de CPU"
 )
 @click.option(
-    "--system-ram",
+    "--ram",
+    "system_ram",
     type=float,
     default=32.0,
     show_default=True,
@@ -813,10 +817,13 @@ def create_model_from_config_json(
     show_default=True,
     help="PCIe generation for bandwidth estimation",
 )
-@click.option("--multi-gpu", is_flag=True, help="Enable multi-GPU mode / Habilitar modo multi-GPU")
-@click.option("--gpu-config", type=str, metavar="CONFIG", help="Multi-GPU configuration (e.g., '2x4090,1x3090')")
+@click.option("--multi", "multi_gpu", is_flag=True, help="Enable multi-GPU mode / Habilitar modo multi-GPU")
 @click.option(
-    "--multi-gpu-mode",
+    "--gpus", "gpu_config", type=str, metavar="CONFIG", help="Multi-GPU configuration (e.g., '2x4090,1x3090')"
+)
+@click.option(
+    "--multi-mode",
+    "multi_gpu_mode",
     type=click.Choice(["tensor", "pipeline"]),
     default="tensor",
     show_default=True,
@@ -844,9 +851,9 @@ def cli(**kwargs):
 
       llmfit --params-b 405 --context 8192 --quantization int4
 
-      llmfit --config-json path/to/config.json --params-b 7 --context 8192
+      llmfit --config path/to/config.json --params-b 7 --context 8192
 
-      llmfit --vram-gb 24 --quantization int4
+      llmfit --vram 24 -q int4
     """
     kwargs["format"] = kwargs.pop("model_format_name")
     run(SimpleNamespace(**kwargs))
@@ -915,7 +922,7 @@ def run(args: SimpleNamespace) -> None:
 
     if args.vram_gb is not None:
         if args.vram_gb <= 0:
-            print("Error: --vram-gb must be positive", file=sys.stderr)
+            print("Error: --vram must be positive", file=sys.stderr)
             sys.exit(1)
 
         try:
@@ -1030,7 +1037,7 @@ def run(args: SimpleNamespace) -> None:
                     )
 
             if not model:
-                print("Error: Please specify --model or --params-b with --multi-gpu", file=sys.stderr)
+                print("Error: Please specify --model or --params-b with --multi", file=sys.stderr)
                 sys.exit(1)
 
             # Create multi-GPU config
@@ -1189,7 +1196,7 @@ def run(args: SimpleNamespace) -> None:
                 print(f"  {r.gpu_name:<25} ({r.gpu_vram_gb:3} GB) - needs {r.required_vram_gb:.1f} GB")
 
             # Suggest layer offload option
-            print(f"\n{Colors.info('💡 Tip: Use --optimize-config to see layer offload options')}")
+            print(f"\n{Colors.info('💡 Tip: Use --optimize to see layer offload options')}")
             print(f"{Colors.dim('   Some layers can run on GPU while others use system RAM.')}")
 
         print("\n" + "=" * 70)

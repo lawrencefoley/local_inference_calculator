@@ -179,7 +179,7 @@ Calculate optimal GPU layer distribution for a model that doesn't fully fit in V
 
 .. code-block:: bash
 
-   uv run llmfit --model 70 --context 8192 --optimize-config --quantization int4
+   uv run llmfit --model 70 --context 8192 --optimize --quantization int4
 
 Saída:
 
@@ -223,7 +223,7 @@ Analyze hybrid GPU+CPU inference with PCIe bandwidth considerations:
 
 .. code-block:: bash
 
-   uv run llmfit --model 13 --context 8192 --cpu-offload --system-ram 64 --pcie-gen 4.0
+   uv run llmfit --model 13 --context 8192 --cpu --ram 64 --pcie-gen 4.0
 
 Saída:
 
@@ -269,7 +269,7 @@ Calculate tensor parallelism across multiple GPUs:
 
 .. code-block:: bash
 
-   uv run llmfit --params-b 405 --context 8192 --quantization int4 --multi-gpu --gpu-config "2x4090,1x3090"
+   uv run llmfit --params-b 405 --context 8192 --quantization int4 --multi --gpus "2x4090,1x3090"
 
 Saída:
 
