@@ -515,7 +515,7 @@ def list_models():
         print(f"     KV cache: {model.kv_cache_mb_per_token} MB/token (FP16 baseline)")
 
     print("\n" + "=" * 70)
-    print("\nUsage: uv run local-inference-calculator --model <size>  (e.g., --model 7)")
+    print("\nUsage: uv run llmfit --model <size>  (e.g., --model 7)")
 
 
 def print_model_vram_breakdown(
@@ -836,17 +836,17 @@ def cli(**kwargs):
 
     Examples:
 
-      local-inference-calculator --context 4096
+      llmfit --context 4096
 
-      local-inference-calculator --model 7 --context 8192
+      llmfit --model 7 --context 8192
 
-      local-inference-calculator -m 70 -c 16384 -q int4
+      llmfit -m 70 -c 16384 -q int4
 
-      local-inference-calculator --params-b 405 --context 8192 --quantization int4
+      llmfit --params-b 405 --context 8192 --quantization int4
 
-      local-inference-calculator --config-json path/to/config.json --params-b 7 --context 8192
+      llmfit --config-json path/to/config.json --params-b 7 --context 8192
 
-      local-inference-calculator --vram-gb 24 --quantization int4
+      llmfit --vram-gb 24 --quantization int4
     """
     kwargs["format"] = kwargs.pop("model_format_name")
     run(SimpleNamespace(**kwargs))

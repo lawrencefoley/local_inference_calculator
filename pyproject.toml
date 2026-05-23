@@ -1,5 +1,5 @@
 [project]
-name = "local-inference-calculator"
+name = "llmfit"
 version = "0.2.1"
 description = "Capacity planning tool for local LLM inference"
 readme = "README.md"
@@ -16,8 +16,7 @@ Homepage = "https://github.com/ygorml/local_inference_calculator"
 Repository = "https://github.com/ygorml/local_inference_calculator"
 
 [project.scripts]
-local-inference-calculator = "main:cli"
-licalc = "main:cli"
+llmfit = "main:cli"
 
 [build-system]
 requires = ["setuptools>=77"]

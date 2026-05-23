@@ -23,7 +23,7 @@ Verificação da Instalação
 
 .. code-block:: bash
 
-   uv run local-inference-calculator --help
+   uv run llmfit --help
 
 Se a mensagem de ajuda for exibida, a instalação está correta.
 
@@ -32,7 +32,7 @@ Execução como ferramenta uv
 
 .. code-block:: bash
 
-   uvx --from . local-inference-calculator --help
+   uvx --from . llmfit --help
 
 Requirements para Desenvolvimento
 ----------------------------------

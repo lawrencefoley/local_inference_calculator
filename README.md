@@ -17,13 +17,13 @@ uv sync
 Run the CLI from a checkout:
 
 ```bash
-uv run local-inference-calculator --help
+uv run llmfit --help
 ```
 
 Install/run it as a uv tool from the local checkout:
 
 ```bash
-uvx --from . local-inference-calculator --help
+uvx --from . llmfit --help
 ```
 
 After publishing or installing from a Git URL, you can also run it with `uvx` using the package source.
@@ -33,16 +33,16 @@ After publishing or installing from a Git URL, you can also run it with `uvx` us
 ### List Available Models
 
 ```bash
-uv run local-inference-calculator --list-models
+uv run llmfit --list-models
 ```
 
 ### Check Specific Model VRAM Requirements
 
 ```bash
-uv run local-inference-calculator --model 7 --context 8192
-uv run local-inference-calculator -m 70 -c 16384 -q int4
-uv run local-inference-calculator -m 0.6 -c 8192      # Small models (0.6B, 1B, etc.)
-uv run local-inference-calculator -m 70 -c 8192 -q int4 --mode production
+uv run llmfit --model 7 --context 8192
+uv run llmfit -m 70 -c 16384 -q int4
+uv run llmfit -m 0.6 -c 8192      # Small models (0.6B, 1B, etc.)
+uv run llmfit -m 70 -c 8192 -q int4 --mode production
 ```
 
 This shows:
@@ -58,8 +58,8 @@ This shows:
 Use `--vram-gb` with a quantization to see which models fit and their estimated maximum context:
 
 ```bash
-uv run local-inference-calculator --vram-gb 24 --quantization int4
-uv run local-inference-calculator --vram-gb 16 --quantization fp16 --mode conservative
+uv run llmfit --vram-gb 24 --quantization int4
+uv run llmfit --vram-gb 16 --quantization fp16 --mode conservative
 ```
 
 You can combine it with `--model`, `--params-b`, or `--config-json` to check a single model.
@@ -69,7 +69,7 @@ You can combine it with `--model`, `--params-b`, or `--config-json` to check a s
 You can derive model metadata, including KV cache MB/token, from a Hugging Face `config.json`:
 
 ```bash
-uv run local-inference-calculator --config-json path/to/config.json --params-b 7 --context 8192
+uv run llmfit --config-json path/to/config.json --params-b 7 --context 8192
 ```
 
 The parser reads common fields such as `num_hidden_layers`, `hidden_size`, `num_attention_heads`, and `num_key_value_heads`. If the config does not include a parameter count, pass it with `--params-b`. Use `--model-name` to override the display name.
@@ -81,7 +81,7 @@ The parser reads common fields such as `num_hidden_layers`, `hidden_size`, `num_
 Calculate optimal GPU layer offload for models that don't fully fit in VRAM:
 
 ```bash
-uv run local-inference-calculator --model 70 --context 8192 --optimize-config --quantization int4
+uv run llmfit --model 70 --context 8192 --optimize-config --quantization int4
 ```
 
 This shows:
@@ -95,7 +95,7 @@ This shows:
 Calculate hybrid GPU+CPU inference configuration:
 
 ```bash
-uv run local-inference-calculator --model 70 --context 8192 --cpu-offload --system-ram 64 --pcie-gen 4.0
+uv run llmfit --model 70 --context 8192 --cpu-offload --system-ram 64 --pcie-gen 4.0
 ```
 
 This shows:
@@ -109,8 +109,8 @@ This shows:
 Calculate tensor parallelism or pipeline parallelism across multiple GPUs:
 
 ```bash
-uv run local-inference-calculator --params-b 405 --context 8192 --quantization int4 --multi-gpu --gpu-config "2x4090,1x3090"
-uv run local-inference-calculator --params-b 405 --multi-gpu --gpu-config "3x3090" --multi-gpu-mode pipeline
+uv run llmfit --params-b 405 --context 8192 --quantization int4 --multi-gpu --gpu-config "2x4090,1x3090"
+uv run llmfit --params-b 405 --multi-gpu --gpu-config "3x3090" --multi-gpu-mode pipeline
 ```
 
 Supported configurations:
@@ -123,7 +123,7 @@ Supported configurations:
 Auto-detect GGUF quantization from filename:
 
 ```bash
-uv run local-inference-calculator --gguf-file "llama-2-7b.Q4_K_M.gguf" --context 4096
+uv run llmfit --gguf-file "llama-2-7b.Q4_K_M.gguf" --context 4096
 ```
 
 Detected quantizations: Q2_K, Q3_K, Q4_K, Q5_K, Q6_K, Q8_0, F16, F32
@@ -133,8 +133,8 @@ Detected quantizations: Q2_K, Q3_K, Q4_K, Q5_K, Q6_K, Q8_0, F16, F32
 Specify model format for accurate memory overhead:
 
 ```bash
-uv run local-inference-calculator --model 7 --context 8192 --format gguf --quantization int4
-uv run local-inference-calculator --model 13 --context 8192 --format exl2
+uv run llmfit --model 7 --context 8192 --format gguf --quantization int4
+uv run llmfit --model 13 --context 8192 --format exl2
 ```
 
 Supported formats: `fp16`, `gguf`, `exl2`, `gptq`, `awq`
@@ -142,26 +142,26 @@ Supported formats: `fp16`, `gguf`, `exl2`, `gptq`, `awq`
 ### Basic (All Combinations)
 
 ```bash
-uv run local-inference-calculator --context 4096
+uv run llmfit --context 4096
 ```
 
 ### Consumer GPUs Only
 
 ```bash
-uv run local-inference-calculator -c 8192 --gpu-type consumer
+uv run llmfit -c 8192 --gpu-type consumer
 ```
 
 ### Show Only Viable Combinations
 
 ```bash
-uv run local-inference-calculator -c 4096 --only-runs
+uv run llmfit -c 4096 --only-runs
 ```
 
 ### Export Results
 
 ```bash
-uv run local-inference-calculator -c 4096 --export-json results.json
-uv run local-inference-calculator -c 4096 --export-csv results.csv
+uv run llmfit -c 4096 --export-json results.json
+uv run llmfit -c 4096 --export-csv results.csv
 ```
 
 ### Calculation Modes
@@ -169,9 +169,9 @@ uv run local-inference-calculator -c 4096 --export-csv results.csv
 The tool supports three calculation modes for different scenarios:
 
 ```bash
-uv run local-inference-calculator -c 8192 --mode theoretical   # Ideal minimum
-uv run local-inference-calculator -c 8192 --mode conservative  # Default (10% buffer)
-uv run local-inference-calculator -c 8192 --mode production    # Real-world serving (25% buffer)
+uv run llmfit -c 8192 --mode theoretical   # Ideal minimum
+uv run llmfit -c 8192 --mode conservative  # Default (10% buffer)
+uv run llmfit -c 8192 --mode production    # Real-world serving (25% buffer)
 ```
 
 ## Professional Features
@@ -458,7 +458,7 @@ cd local_inference_calculator
 uv sync
 
 # Run the CLI while developing
-uv run local-inference-calculator --list-models
+uv run llmfit --list-models
 
 # Build documentation to verify changes
 cd docs && make html LANG=en

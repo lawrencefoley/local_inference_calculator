@@ -33,7 +33,7 @@ wheels = [
 ]
 
 [[package]]
-name = "local-inference-calculator"
+name = "llmfit"
 version = "0.2.1"
 source = { editable = "." }
 dependencies = [

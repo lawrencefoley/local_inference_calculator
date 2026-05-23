@@ -11,7 +11,7 @@ To see all available models in the database:
 
 .. code-block:: bash
 
-   uv run local-inference-calculator --list-models
+   uv run llmfit --list-models
 
 This shows model name, size, architecture, and KV cache requirements for each model.
 
@@ -22,8 +22,8 @@ To check VRAM requirements for a specific model:
 
 .. code-block:: bash
 
-   uv run local-inference-calculator --model 7 --context 8192
-   uv run local-inference-calculator -m 70 -c 16384 -q int4
+   uv run llmfit --model 7 --context 8192
+   uv run llmfit -m 70 -c 16384 -q int4
 
 The output includes:
 
@@ -38,13 +38,13 @@ To see all model × GPU combinations:
 
 .. code-block:: bash
 
-   uv run local-inference-calculator --context 4096
+   uv run llmfit --context 4096
 
 Or with a larger context:
 
 .. code-block:: bash
 
-   uv run local-inference-calculator -c 8192
+   uv run llmfit -c 8192
 
 
 Max Context for a VRAM Budget
@@ -54,8 +54,8 @@ Use ``--vram-gb`` with a quantization to see which models fit and their estimate
 
 .. code-block:: bash
 
-   uv run local-inference-calculator --vram-gb 24 --quantization int4
-   uv run local-inference-calculator --vram-gb 16 --quantization fp16 --mode conservative
+   uv run llmfit --vram-gb 24 --quantization int4
+   uv run llmfit --vram-gb 16 --quantization fp16 --mode conservative
 
 Combine it with ``--model``, ``--params-b``, or ``--config-json`` to check a single model.
 
@@ -66,7 +66,7 @@ Derive KV cache metadata from a Hugging Face ``config.json``:
 
 .. code-block:: bash
 
-   uv run local-inference-calculator --config-json path/to/config.json --params-b 7 --context 8192
+   uv run llmfit --config-json path/to/config.json --params-b 7 --context 8192
 
 If the config does not include a parameter count, pass it with ``--params-b``. Use ``--model-name`` to override the display name.
 
@@ -75,7 +75,7 @@ Command-Line Options
 
 .. code-block:: bash
 
-   uv run local-inference-calculator [OPTIONS]
+   uv run llmfit [OPTIONS]
 
 Basic Options
 ~~~~~~~~~~~~~
@@ -174,31 +174,31 @@ Consumer GPUs only:
 
 .. code-block:: bash
 
-   uv run local-inference-calculator -c 8192 --gpu-type consumer
+   uv run llmfit -c 8192 --gpu-type consumer
 
 Show only viable combinations:
 
 .. code-block:: bash
 
-   uv run local-inference-calculator -c 4096 --only-runs
+   uv run llmfit -c 4096 --only-runs
 
 Export results to JSON:
 
 .. code-block:: bash
 
-   uv run local-inference-calculator -c 8192 --export-json results.json
+   uv run llmfit -c 8192 --export-json results.json
 
 Use INT4 quantization for larger models:
 
 .. code-block:: bash
 
-   uv run local-inference-calculator -c 8192 -q int4 --only-runs
+   uv run llmfit -c 8192 -q int4 --only-runs
 
 Check if a 70B model fits on RTX 4090:
 
 .. code-block:: bash
 
-   uv run local-inference-calculator --model 70 --context 8192
+   uv run llmfit --model 70 --context 8192
 
 
 Supported Precisions

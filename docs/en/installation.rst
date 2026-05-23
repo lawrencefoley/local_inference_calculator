@@ -24,13 +24,13 @@ Run from a checkout:
 
 .. code-block:: bash
 
-   uv run local-inference-calculator --help
+   uv run llmfit --help
 
 Run as a uv tool from a checkout:
 
 .. code-block:: bash
 
-   uvx --from . local-inference-calculator --help
+   uvx --from . llmfit --help
 
 Project Structure
 -----------------

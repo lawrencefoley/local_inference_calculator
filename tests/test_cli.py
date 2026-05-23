@@ -10,7 +10,7 @@ def test_help_command() -> None:
     result = CliRunner().invoke(cli, ["--help"])
 
     assert result.exit_code == 0
-    assert "local-inference-calculator --context 4096" in result.output
+    assert "llmfit --context 4096" in result.output
 
 
 def test_list_models_command() -> None:
@@ -18,7 +18,7 @@ def test_list_models_command() -> None:
 
     assert result.exit_code == 0
     assert "AVAILABLE MODELS" in result.output
-    assert "Usage: uv run local-inference-calculator --model <size>" in result.output
+    assert "Usage: uv run llmfit --model <size>" in result.output
 
 
 def test_model_catalog_splits_mixed_size_entries() -> None:
