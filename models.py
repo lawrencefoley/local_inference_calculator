@@ -89,38 +89,6 @@ class LLMModel:
             return int(80 * (self.params_billion / 70) ** 0.5)
 
 
-@dataclass(frozen=True)
-class ModelCatalogEntry:
-    """Normalized immutable model catalog entry.
-
-    Each entry represents one concrete model size. Grouped source rows are
-    expanded into these entries so display names cannot mix unrelated parameter
-    counts.
-    """
-
-    name: str
-    params_billion: float
-    architecture: str
-    kv_cache_mb_per_token: float
-    precision_default: str = "fp16"
-    format: ModelFormat = ModelFormat.FP16
-    context_length_max: int | None = None
-    num_layers: int | None = None
-
-    def to_model(self) -> LLMModel:
-        """Convert the catalog entry to the public model type."""
-        return LLMModel(
-            name=self.name,
-            params_billion=self.params_billion,
-            architecture=self.architecture,
-            precision_default=self.precision_default,
-            kv_cache_mb_per_token=self.kv_cache_mb_per_token,
-            format=self.format,
-            context_length_max=self.context_length_max,
-            num_layers=self.num_layers,
-        )
-
-
 # ============================================================================
 # OLLAMA LIBRARY MODELS
 # Modelos da biblioteca Ollama
@@ -1119,15 +1087,15 @@ def _name_for_size(raw_name: str, params_billion: float) -> str:
     return f"{base} {size_label}"
 
 
-def _expand_group(group: LLMModel) -> list[ModelCatalogEntry]:
-    entries: list[ModelCatalogEntry] = []
+def _expand_group(group: LLMModel) -> list[LLMModel]:
+    entries: list[LLMModel] = []
     for raw_name in [part.strip() for part in group.name.split(" / ") if part.strip()]:
         sizes = _extract_sizes(raw_name) or [group.params_billion]
         for size in sizes:
             architecture = "moe" if _MOE_PATTERN.search(raw_name) else group.architecture
             kv_cache = group.kv_cache_mb_per_token if size == group.params_billion else _estimate_kv_cache(size)
             entries.append(
-                ModelCatalogEntry(
+                LLMModel(
                     name=_name_for_size(raw_name, size),
                     params_billion=size,
                     architecture=architecture,
@@ -1141,16 +1109,15 @@ def _expand_group(group: LLMModel) -> list[ModelCatalogEntry]:
     return entries
 
 
-def _build_catalog(groups: tuple[LLMModel, ...]) -> tuple[ModelCatalogEntry, ...]:
-    deduped: dict[tuple[str, float], ModelCatalogEntry] = {}
+def _build_catalog(groups: tuple[LLMModel, ...]) -> tuple[LLMModel, ...]:
+    deduped: dict[tuple[str, float], LLMModel] = {}
     for group in groups:
         for entry in _expand_group(group):
             deduped.setdefault((entry.name.lower(), entry.params_billion), entry)
     return tuple(sorted(deduped.values(), key=lambda entry: (entry.params_billion, entry.name.lower())))
 
 
-MODEL_CATALOG: tuple[ModelCatalogEntry, ...] = _build_catalog(_RAW_MODEL_GROUPS)
-LLM_MODELS: tuple[LLMModel, ...] = tuple(entry.to_model() for entry in MODEL_CATALOG)
+LLM_MODELS: tuple[LLMModel, ...] = _build_catalog(_RAW_MODEL_GROUPS)
 
 
 def get_model_by_size(size_billion: float) -> LLMModel | None:
