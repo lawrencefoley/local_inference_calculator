@@ -509,7 +509,7 @@ def list_models():
     print("=" * 70)
 
     for model in models:
-        print(f"\n  [{model.params_billion}B] {model.name}")
+        print(f"\n  [{model.params_billion:g}B] {model.name}")
         print(f"     Architecture: {model.architecture}")
         print(f"     Default precision: {model.precision_default}")
         print(f"     KV cache: {model.kv_cache_mb_per_token} MB/token (FP16 baseline)")

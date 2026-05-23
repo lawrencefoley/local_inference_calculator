@@ -3,6 +3,7 @@ import json
 from click.testing import CliRunner
 
 from main import calculate_kv_cache_from_config, cli
+from models import get_all_models
 
 
 def test_help_command() -> None:
@@ -18,6 +19,13 @@ def test_list_models_command() -> None:
     assert result.exit_code == 0
     assert "AVAILABLE MODELS" in result.output
     assert "Usage: uv run local-inference-calculator --model <size>" in result.output
+
+
+def test_model_catalog_splits_mixed_size_entries() -> None:
+    qwen_coder_models = [model for model in get_all_models() if model.name == "qwen3-coder 30B"]
+
+    assert len(qwen_coder_models) == 1
+    assert qwen_coder_models[0].params_billion == 30
 
 
 def test_calculate_kv_cache_from_config() -> None:

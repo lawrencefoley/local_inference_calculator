@@ -9,6 +9,7 @@ Cada modelo possui metadados para cálculo de uso de VRAM em inferência.
 Inclui modelos da biblioteca Ollama para cobertura abrangente.
 """
 
+import re
 from dataclasses import dataclass, field
 
 from formats import ModelFormat
@@ -32,7 +33,7 @@ class LLMModel:
     """
 
     name: str
-    params_billion: int
+    params_billion: float
     architecture: str
     precision_default: str
     # KV cache em MB por token (estimativa conservadora para FP16)
@@ -54,7 +55,7 @@ class LLMModel:
 
         Retorna label simplificado do tamanho (ex: '7B', '13B').
         """
-        return f"{self.params_billion}B"
+        return f"{self.params_billion:g}B"
 
     @property
     def estimated_layers(self) -> int:
@@ -88,6 +89,38 @@ class LLMModel:
             return int(80 * (self.params_billion / 70) ** 0.5)
 
 
+@dataclass(frozen=True)
+class ModelCatalogEntry:
+    """Normalized immutable model catalog entry.
+
+    Each entry represents one concrete model size. Grouped source rows are
+    expanded into these entries so display names cannot mix unrelated parameter
+    counts.
+    """
+
+    name: str
+    params_billion: float
+    architecture: str
+    kv_cache_mb_per_token: float
+    precision_default: str = "fp16"
+    format: ModelFormat = ModelFormat.FP16
+    context_length_max: int | None = None
+    num_layers: int | None = None
+
+    def to_model(self) -> LLMModel:
+        """Convert the catalog entry to the public model type."""
+        return LLMModel(
+            name=self.name,
+            params_billion=self.params_billion,
+            architecture=self.architecture,
+            precision_default=self.precision_default,
+            kv_cache_mb_per_token=self.kv_cache_mb_per_token,
+            format=self.format,
+            context_length_max=self.context_length_max,
+            num_layers=self.num_layers,
+        )
+
+
 # ============================================================================
 # OLLAMA LIBRARY MODELS
 # Modelos da biblioteca Ollama
@@ -99,7 +132,7 @@ class LLMModel:
 # Values below are approximate and conservative
 # Valores abaixo são aproximados e conservadores
 
-LLM_MODELS: list[LLMModel] = [
+_RAW_MODEL_GROUPS: tuple[LLMModel, ...] = (
     # ==========================================================================
     # TINY MODELS (< 1B) - Embedding, small tasks
     # Modelos TINY (< 1B) - Embedding, tarefas pequenas
@@ -1010,7 +1043,114 @@ LLM_MODELS: list[LLMModel] = [
         precision_default="fp16",
         kv_cache_mb_per_token=0.1,
     ),
-]
+)
+
+
+_SIZE_PATTERN = re.compile(r"(?<![\d.])(\d+(?:\.\d+)?)\s*([BbMm])\b")
+_MOE_PATTERN = re.compile(r"(\d+)\s*x\s*(\d+(?:\.\d+)?)\s*[Bb]", re.IGNORECASE)
+_MOE_PARAM_OVERRIDES = {
+    "8x7b": 47.0,
+    "8x22b": 141.0,
+}
+
+
+def _format_params(params_billion: float) -> str:
+    if params_billion >= 1:
+        return f"{params_billion:g}B"
+    return f"{params_billion * 1000:g}M"
+
+
+def _estimate_kv_cache(params_billion: float) -> float:
+    """Estimate KV cache MB/token for expanded variants without exact metadata."""
+    if params_billion <= 1:
+        return 0.05 if params_billion < 1 else 0.1
+    if params_billion <= 3:
+        return 0.15
+    if params_billion <= 7:
+        return 0.6
+    if params_billion <= 13:
+        return 0.9
+    if params_billion <= 30:
+        return 1.7
+    if params_billion <= 70:
+        return 4.27
+    if params_billion <= 100:
+        return 5.0
+    return 5.0 * (params_billion / 100) ** 0.5
+
+
+def _extract_sizes(name: str) -> list[float]:
+    sizes: list[float] = []
+    moe_match = _MOE_PATTERN.search(name)
+    if moe_match is not None:
+        experts, expert_size = moe_match.groups()
+        expert_size_float = float(expert_size)
+        moe_key = f"{experts}x{expert_size_float:g}b"
+        sizes.append(_MOE_PARAM_OVERRIDES.get(moe_key, float(experts) * expert_size_float))
+    else:
+        for match in _SIZE_PATTERN.finditer(name):
+            size = float(match.group(1))
+            unit = match.group(2).lower()
+            sizes.append(size / 1000 if unit == "m" else size)
+
+    unique_sizes: list[float] = []
+    for size in sizes:
+        if size not in unique_sizes:
+            unique_sizes.append(size)
+    return unique_sizes
+
+
+def _name_for_size(raw_name: str, params_billion: float) -> str:
+    """Create a concrete display name for one size from a grouped source name."""
+    size_label = _format_params(params_billion)
+    if size_label.lower() in raw_name.lower() and "/" not in raw_name:
+        return raw_name
+
+    if _MOE_PATTERN.search(raw_name):
+        return raw_name
+
+    base_match = _SIZE_PATTERN.search(raw_name)
+    if base_match is None:
+        return raw_name
+
+    base = raw_name[: base_match.start()].strip(" -_/()")
+    if not base:
+        return raw_name
+    return f"{base} {size_label}"
+
+
+def _expand_group(group: LLMModel) -> list[ModelCatalogEntry]:
+    entries: list[ModelCatalogEntry] = []
+    for raw_name in [part.strip() for part in group.name.split(" / ") if part.strip()]:
+        sizes = _extract_sizes(raw_name) or [group.params_billion]
+        for size in sizes:
+            architecture = "moe" if _MOE_PATTERN.search(raw_name) else group.architecture
+            kv_cache = group.kv_cache_mb_per_token if size == group.params_billion else _estimate_kv_cache(size)
+            entries.append(
+                ModelCatalogEntry(
+                    name=_name_for_size(raw_name, size),
+                    params_billion=size,
+                    architecture=architecture,
+                    precision_default=group.precision_default,
+                    kv_cache_mb_per_token=kv_cache,
+                    format=group.format,
+                    context_length_max=group.context_length_max,
+                    num_layers=group.num_layers,
+                )
+            )
+    return entries
+
+
+def _build_catalog(groups: tuple[LLMModel, ...]) -> tuple[ModelCatalogEntry, ...]:
+    deduped: dict[tuple[str, float], ModelCatalogEntry] = {}
+    for group in groups:
+        for entry in _expand_group(group):
+            deduped.setdefault((entry.name.lower(), entry.params_billion), entry)
+    return tuple(sorted(deduped.values(), key=lambda entry: (entry.params_billion, entry.name.lower())))
+
+
+MODEL_CATALOG: tuple[ModelCatalogEntry, ...] = _build_catalog(_RAW_MODEL_GROUPS)
+LLM_MODELS: tuple[LLMModel, ...] = tuple(entry.to_model() for entry in MODEL_CATALOG)
 
 
 def get_model_by_size(size_billion: float) -> LLMModel | None:
@@ -1038,7 +1178,7 @@ def get_all_models() -> list[LLMModel]:
     Returns:
         List of all LLMModel instances
     """
-    return LLM_MODELS.copy()
+    return list(LLM_MODELS)
 
 
 def get_models_by_size_range(min_billion: int, max_billion: int) -> list[LLMModel]:
