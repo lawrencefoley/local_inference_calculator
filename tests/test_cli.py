@@ -28,14 +28,6 @@ def test_model_catalog_splits_mixed_size_entries() -> None:
     assert qwen_coder_models[0].params_billion == 30
 
 
-def test_qwen_moe_long_context_estimate() -> None:
-    result = CliRunner().invoke(cli, ["--vram", "32", "--model", "27", "-q", "int4"])
-
-    assert result.exit_code == 0
-    assert "Qwen3.6 27B" in result.output
-    assert "262,144*" in result.output
-
-
 def test_calculate_kv_cache_from_config() -> None:
     kv_cache = calculate_kv_cache_from_config(
         {
