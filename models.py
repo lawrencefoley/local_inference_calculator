@@ -804,6 +804,26 @@ _RAW_MODEL_GROUPS: tuple[LLMModel, ...] = (
         kv_cache_mb_per_token=1.6,
     ),
     LLMModel(
+        name="Qwen3 30B-A3B",
+        params_billion=30,
+        architecture="moe",
+        precision_default="fp16",
+        # Qwen3 30B-A3B uses a much smaller attention state than dense 30B models
+        # (48 layers, 4 KV heads, head_dim 64), so long contexts are feasible.
+        kv_cache_mb_per_token=0.046875,
+        context_length_max=262144,
+        num_layers=48,
+    ),
+    LLMModel(
+        name="Qwen3.6 27B",
+        params_billion=27,
+        architecture="moe",
+        precision_default="fp16",
+        kv_cache_mb_per_token=0.046875,
+        context_length_max=262144,
+        num_layers=48,
+    ),
+    LLMModel(
         name="llama3.2-vision 11B / falcon3 10B / exaone3.5 32B",
         params_billion=11,
         architecture="decoder-only",

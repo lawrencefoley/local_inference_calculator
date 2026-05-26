@@ -12,7 +12,7 @@ localmente em diferentes GPUs, considerando tamanho do contexto,
 arquitetura do modelo e capacidade de VRAM.
 """
 
-__version__ = "0.2.2"
+__version__ = "0.2.3"
 
 # Core imports
 # Importações principais

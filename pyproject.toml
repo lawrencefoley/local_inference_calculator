@@ -1,6 +1,6 @@
 [project]
 name = "llmfit"
-version = "0.2.2"
+version = "0.2.3"
 description = "Capacity planning tool for local LLM inference"
 readme = "README.md"
 requires-python = ">=3.11"

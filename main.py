@@ -959,18 +959,19 @@ def run(args: SimpleNamespace) -> None:
                     )
                 ]
             elif args.model:
-                db_model = get_model_by_size(args.model)
-                if db_model is None:
+                vram_models = [model for model in get_all_models() if model.params_billion == args.model]
+                if not vram_models:
                     kv_cache = args.kv_cache if args.kv_cache else estimate_kv_cache(args.model)
-                    db_model = LLMModel(
-                        name=f"Generic Model {args.model:g}B",
-                        params_billion=args.model,
-                        architecture="decoder-only",
-                        precision_default="fp16",
-                        kv_cache_mb_per_token=kv_cache,
-                        format=model_format,
-                    )
-                vram_models = [db_model]
+                    vram_models = [
+                        LLMModel(
+                            name=f"Generic Model {args.model:g}B",
+                            params_billion=args.model,
+                            architecture="decoder-only",
+                            precision_default="fp16",
+                            kv_cache_mb_per_token=kv_cache,
+                            format=model_format,
+                        )
+                    ]
             else:
                 vram_models = get_all_models()
         except (OSError, json.JSONDecodeError, ValueError) as e:
