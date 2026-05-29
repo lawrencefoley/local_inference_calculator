@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
-"""Measure llama-server VRAM usage with amd-smi.
+"""Measure llama-server VRAM usage at byte precision via sysfs.
 
 Runs llama-server in the Atlas Docker Compose stack, waits for the model to load,
-samples VRAM with `amd-smi`, sends a small completion request, then reports the
-loaded and inference-time VRAM deltas.
+samples VRAM from /sys/class/drm/card*/device/mem_info_vram_used (byte granularity),
+sends a small completion request, then reports the loaded and inference-time VRAM deltas.
+
+Falls back to amd-smi (MB granularity) if the sysfs file is not available.
 
 Default settings match the Atlas llama-bench service, which shares the
 llama-swap Hugging Face cache.
@@ -21,6 +23,7 @@ from typing import Any
 REMOTE_SCRIPT = r"""
 from __future__ import annotations
 
+import glob
 import json
 import subprocess
 import sys
@@ -43,20 +46,31 @@ startup_timeout = float(opts["startup_timeout"])
 request_timeout = float(opts["request_timeout"])
 extra_args = opts["extra_args"]
 no_mmproj = bool(opts["no_mmproj"])
+n_parallel = int(opts.get("n_parallel", 1))
 
 safe_model = model.replace("/", "_").replace(":", "_")
 log_path = Path(f"/tmp/llmfit-server-{safe_model}-{ctx}.log")
 samples_path = Path(f"/tmp/llmfit-server-{safe_model}-{ctx}.mem")
+
+_SYSFS_VRAM = next(iter(sorted(glob.glob("/sys/class/drm/card*/device/mem_info_vram_used"))), None)
 
 
 def run(command: list[str], check: bool = False) -> subprocess.CompletedProcess[str]:
     return subprocess.run(command, text=True, capture_output=True, check=check)
 
 
-def used_vram_mb() -> int:
+def used_vram_bytes() -> int:
+    # sysfs = byte precision; amd-smi fallback = MiB granularity converted to bytes
+    if _SYSFS_VRAM:
+        return int(Path(_SYSFS_VRAM).read_text().strip())
     data = subprocess.check_output(["amd-smi", "metric", "-m", "--json"], text=True)
     payload = json.loads(data)
-    return int(payload["gpu_data"][0]["mem_usage"]["used_vram"]["value"])
+    mb = int(payload["gpu_data"][0]["mem_usage"]["used_vram"]["value"])
+    return mb * 1024 * 1024  # amd-smi reports MiB; convert to bytes
+
+
+def used_vram_mib() -> float:
+    return used_vram_bytes() / (1024 * 1024)
 
 
 def cleanup() -> None:
@@ -65,7 +79,7 @@ def cleanup() -> None:
 
 cleanup()
 time.sleep(2)
-baseline_mb = used_vram_mb()
+baseline_bytes = used_vram_bytes()
 
 server_args = [
     "-hf",
@@ -74,6 +88,8 @@ server_args = [
     str(opts["gpu_layers"]),
     "-c",
     ctx,
+    "-np",
+    str(n_parallel),
     "--host",
     "0.0.0.0",
     "--port",
@@ -118,9 +134,9 @@ while time.time() - started_at < startup_timeout:
         break
     time.sleep(1)
 
-# Give ROCm/llama-server a moment to settle after startup.
+# Give llama-server a moment to settle after startup.
 time.sleep(3)
-loaded_mb = used_vram_mb()
+loaded_bytes = used_vram_bytes()
 
 samples: list[int] = []
 stop_sampling = False
@@ -130,7 +146,7 @@ def monitor() -> None:
     with samples_path.open("w") as file:
         while not stop_sampling:
             try:
-                used = used_vram_mb()
+                used = used_vram_bytes()
             except Exception:
                 used = 0
             samples.append(used)
@@ -170,12 +186,12 @@ request = subprocess.run(
 stop_sampling = True
 thread.join()
 
-after_request_mb = used_vram_mb()
+after_request_bytes = used_vram_bytes()
 logs = run(["docker", "logs", container_name]).stdout + run(["docker", "logs", container_name]).stderr
 log_path.write_text(logs)
 cleanup()
 time.sleep(2)
-final_mb = used_vram_mb()
+final_bytes = used_vram_bytes()
 
 interesting_needles = [
     "model buffer size",
@@ -191,22 +207,36 @@ interesting_needles = [
 ]
 interesting_logs = [line for line in logs.splitlines() if any(needle in line for needle in interesting_needles)]
 
-peak_mb = max(samples) if samples else after_request_mb
+peak_bytes = max(samples) if samples else after_request_bytes
+MiB = 1024 * 1024
+
 result = {
     "model": model,
     "ctx": int(ctx),
+    "vram_source": "sysfs" if _SYSFS_VRAM else "amd-smi",
+    "n_parallel": n_parallel,
     "container_id": container_id,
     "loaded": loaded,
     "startup_error": startup_error,
-    "baseline_mb": baseline_mb,
-    "loaded_mb": loaded_mb,
-    "loaded_delta_mb": loaded_mb - baseline_mb,
-    "inference_peak_mb": peak_mb,
-    "inference_peak_delta_mb": peak_mb - baseline_mb,
-    "inference_peak_minus_loaded_mb": peak_mb - loaded_mb,
-    "after_request_mb": after_request_mb,
-    "after_request_minus_loaded_mb": after_request_mb - loaded_mb,
-    "final_mb": final_mb,
+    # Byte-precision fields
+    "baseline_bytes": baseline_bytes,
+    "loaded_bytes": loaded_bytes,
+    "loaded_delta_bytes": loaded_bytes - baseline_bytes,
+    "inference_peak_bytes": peak_bytes,
+    "inference_peak_delta_bytes": peak_bytes - baseline_bytes,
+    "inference_peak_minus_loaded_bytes": peak_bytes - loaded_bytes,
+    "after_request_bytes": after_request_bytes,
+    "final_bytes": final_bytes,
+    # MiB fields (float, derived from bytes — backward-compatible with old integer _mb fields)
+    "baseline_mb": baseline_bytes / MiB,
+    "loaded_mb": loaded_bytes / MiB,
+    "loaded_delta_mb": (loaded_bytes - baseline_bytes) / MiB,
+    "inference_peak_mb": peak_bytes / MiB,
+    "inference_peak_delta_mb": (peak_bytes - baseline_bytes) / MiB,
+    "inference_peak_minus_loaded_mb": (peak_bytes - loaded_bytes) / MiB,
+    "after_request_mb": after_request_bytes / MiB,
+    "after_request_minus_loaded_mb": (after_request_bytes - loaded_bytes) / MiB,
+    "final_mb": final_bytes / MiB,
     "request_returncode": request.returncode,
     "request_stderr": request.stderr[:1000],
     "response_prefix": request.stdout[:500],
@@ -219,17 +249,18 @@ print(json.dumps(result, indent=2))
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Measure llama-server VRAM usage on Atlas with amd-smi.")
+    parser = argparse.ArgumentParser(description="Measure llama-server VRAM usage on Atlas at byte precision via sysfs.")
     parser.add_argument("model", help="Hugging Face GGUF repo, e.g. unsloth/Qwen3.6-27B-GGUF")
     parser.add_argument("--ctx", type=int, default=32768, help="llama-server context size")
     parser.add_argument("--ssh-host", default="atlas", help="SSH host to run measurements on")
     parser.add_argument("--compose-file", default="/opt/compose/compose.yaml")
     parser.add_argument("--compose-project", default="main")
-    parser.add_argument("--compose-service", default="llama-bench")
+    parser.add_argument("--compose-service", default="llama-bench-vulkan")
     parser.add_argument("--container-name", default="llmfit-measure-server")
     parser.add_argument("--port", type=int, default=18080, help="Temporary host port mapped to llama-server")
     parser.add_argument("--gpu-layers", type=int, default=99)
     parser.add_argument("--with-mmproj", action="store_true", help="Allow llama.cpp to auto-load mmproj if available")
+    parser.add_argument("--n-parallel", type=int, default=1, help="llama-server parallel slots (-np). Default 1 matches production llama-swap config.")
     parser.add_argument("--n-predict", type=int, default=256)
     parser.add_argument("--prompt", default="Write a short paragraph about memory estimation.")
     parser.add_argument("--sample-interval", type=float, default=0.1)
@@ -261,22 +292,27 @@ def run_remote(options: dict[str, Any], ssh_host: str) -> dict[str, Any]:
         raise
 
 
+def _fmt(bytes_val: int | float, mib_val: float) -> str:
+    return f"{mib_val:>12.4f} MiB  ({int(bytes_val):>14,} bytes)"
+
+
 def print_summary(result: dict[str, Any]) -> None:
     print(f"Model: {result['model']}")
     print(f"Context: {result['ctx']:,}")
     print(f"Loaded: {result['loaded']}")
+    print(f"VRAM source: {result.get('vram_source', 'amd-smi')}")
     if result.get("startup_error"):
         print(f"Startup error: {result['startup_error']}")
     print()
-    print("amd-smi VRAM:")
-    print(f"  baseline:              {result['baseline_mb']:>8} MB")
-    print(f"  loaded:                {result['loaded_mb']:>8} MB")
-    print(f"  loaded delta:          {result['loaded_delta_mb']:>8} MB")
-    print(f"  inference peak:        {result['inference_peak_mb']:>8} MB")
-    print(f"  inference peak delta:  {result['inference_peak_delta_mb']:>8} MB")
-    print(f"  peak - loaded:         {result['inference_peak_minus_loaded_mb']:>8} MB")
-    print(f"  after request:         {result['after_request_mb']:>8} MB")
-    print(f"  final after cleanup:   {result['final_mb']:>8} MB")
+    print("VRAM usage:")
+    print(f"  baseline:              {_fmt(result['baseline_bytes'], result['baseline_mb'])}")
+    print(f"  loaded:                {_fmt(result['loaded_bytes'], result['loaded_mb'])}")
+    print(f"  loaded delta:          {_fmt(result['loaded_delta_bytes'], result['loaded_delta_mb'])}")
+    print(f"  inference peak:        {_fmt(result['inference_peak_bytes'], result['inference_peak_mb'])}")
+    print(f"  inference peak delta:  {_fmt(result['inference_peak_delta_bytes'], result['inference_peak_delta_mb'])}")
+    print(f"  peak - loaded:         {_fmt(result['inference_peak_minus_loaded_bytes'], result['inference_peak_minus_loaded_mb'])}")
+    print(f"  after request:         {_fmt(result['after_request_bytes'], result['after_request_mb'])}")
+    print(f"  final after cleanup:   {_fmt(result['final_bytes'], result['final_mb'])}")
     print()
     print(f"Request rc: {result['request_returncode']}")
     if result.get("request_stderr"):
@@ -303,6 +339,7 @@ def main() -> None:
         "compose_service": args.compose_service,
         "gpu_layers": args.gpu_layers,
         "no_mmproj": not args.with_mmproj,
+        "n_parallel": args.n_parallel,
         "n_predict": args.n_predict,
         "prompt": args.prompt,
         "sample_interval": args.sample_interval,
