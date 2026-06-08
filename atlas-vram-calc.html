@@ -419,15 +419,29 @@ const MODELS = [
   { id:'r1-32b',  name:'DeepSeek-R1-32B',   quant:'Q4_K_M',      w:18956, slope:0.2514, max:49152,  color:'#fb7185' },
   { id:'hymt2',   name:'Hy-MT2-7B',         quant:'Q4_K_M',      w:4780,  slope:0.1272, max:208896, color:'#34d399' },
   { id:'glm-ocr', name:'GLM-OCR',           quant:'Q8_0',        w:2708,  slope:0,      max:12000,  color:'#f59e0b', fixed:true },
+  // Coding / General (additional Atlas models)
+  { id:'q35a3b',  name:'Qwen3.6-35B-A3B',   quant:'Q4_K_M',      w:20300, slope:0.0700, max:147456, color:'#9333ea', mtp:true },
+  { id:'devs22b', name:'Devstral-Small-2505',quant:'Q5_K_M',      w:16200, slope:0.0530, max:16384,  color:'#e879f9' },
+  { id:'gptoss20',name:'GPT-OSS-20B',        quant:'Q4_K_M',      w:12350, slope:0.0500, max:98304,  color:'#a3e635' },
+  { id:'gem4-12', name:'Gemma-4-12B',        quant:'Q4_0',        w:7100,  slope:0.0350, max:81920,  color:'#f9a8d4' },
+  // Vision (additional)
+  { id:'gem4-e4b',name:'Gemma-4-E4B',        quant:'Q4_0 +mmproj',w:3400,  slope:0.0285, max:16384,  color:'#5eead4' },
+  { id:'vl32b',   name:'Qwen3-VL-32B',       quant:'Q4_K_M +mmproj',w:19500,slope:0.0620,max:8192,   color:'#93c5fd' },
+  // Embedding & Rerank
+  { id:'qemb4',   name:'Qwen3-Embed-4B',     quant:'Q8_0',        w:4700,  slope:0.0307, max:16384,  color:'#a78bfa', embed:true },
+  { id:'qemb8',   name:'Qwen3-Embed-8B',     quant:'Q8_0',        w:8900,  slope:0.0312, max:16384,  color:'#8b5cf6', embed:true },
+  { id:'gemmaemb',name:'EmbGemma-300M',       quant:'Q8_0',        w:600,   slope:0.0050, max:2048,   color:'#c4b5fd', embed:true },
+  { id:'qrerank4',name:'Qwen3-Reranker-4B',  quant:'Q8_0',        w:4700,  slope:0.0307, max:16384,  color:'#7c3aed', rerank:true },
   // Voice
   { id:'whisper', name:'Whisper STT',        quant:'small.en',    w:726,   slope:0,      max:0,      color:'#94a3b8', fixed:true },
   { id:'kokoro',  name:'Kokoro TTS',         quant:'CPU ONNX',    w:0,     slope:0,      max:0,      color:'#cbd5e1', fixed:true },
 ];
 
 const GROUPS = [
-  { label: 'Text Models',    ids: ['q0.8b','q2b','q4b','q9b','q9b-mtp','q27b','q27b-mtp'] },
-  { label: 'Vision Models',  ids: ['vl2b','vl4b','vl8b'] },
-  { label: 'Specialty',      ids: ['gemma31b','r1-32b','hymt2','glm-ocr'] },
+  { label: 'Text Models',    ids: ['q0.8b','q2b','q4b','q9b','q9b-mtp','q27b','q27b-mtp','q35a3b','gem4-12'] },
+  { label: 'Vision Models',  ids: ['vl2b','vl4b','vl8b','gem4-e4b','vl32b'] },
+  { label: 'Specialty',      ids: ['gemma31b','devs22b','gptoss20','r1-32b','hymt2','glm-ocr'] },
+  { label: 'Embed & Rerank', ids: ['qemb4','qemb8','gemmaemb','qrerank4'] },
   { label: 'Voice Services', ids: ['whisper','kokoro'] },
 ];
 
@@ -726,6 +740,16 @@ const HF_REPOS = {
   'r1-32b':   'bartowski/DeepSeek-R1-Distill-Qwen-32B-GGUF:Q4_K_M',
   'hymt2':    'tencent/Hy-MT2-7B-GGUF:Q4_K_M',
   'glm-ocr':  'ggml-org/GLM-OCR-GGUF',
+  'q35a3b':   'unsloth/Qwen3.6-35B-A3B-MTP-GGUF:Q4_K_M',
+  'devs22b':  'mistralai/Devstral-Small-2505_gguf:Q5_K_M',
+  'gptoss20': 'ggml-org/gpt-oss-20b-GGUF:Q4_K_M',
+  'gem4-12':  'google/gemma-4-12B-it-qat-q4_0-gguf:Q4_0',
+  'gem4-e4b': 'google/gemma-4-E4B-it-qat-q4_0-gguf:Q4_0',
+  'vl32b':    'Qwen/Qwen3-VL-32B-Instruct-GGUF:Q4_K_M',
+  'qemb4':    'Qwen/Qwen3-Embedding-4B-GGUF:Q8_0',
+  'qemb8':    'Qwen/Qwen3-Embedding-8B-GGUF:Q8_0',
+  'gemmaemb': 'google/embeddinggemma-300m-GGUF:Q8_0',
+  'qrerank4': 'Voodisss/Qwen3-Reranker-4B-GGUF-llama_cpp:Q8_0',
 };
 
 const BASE_NAMES = {
@@ -735,6 +759,11 @@ const BASE_NAMES = {
   'vl2b': 'qwen3-vl-2b', 'vl4b': 'qwen3-vl-4b', 'vl8b': 'qwen3-vl-8b',
   'gemma31b': 'gemma-4-31b-it', 'r1-32b': 'deepseek-r1-32b',
   'hymt2': 'hy-mt2-7b', 'glm-ocr': 'glm-ocr',
+  'q35a3b': 'qwen3.6-35b-a3b-mtp', 'devs22b': 'devstral-small-2505',
+  'gptoss20': 'gpt-oss-20b', 'gem4-12': 'gemma-4-12b-it',
+  'gem4-e4b': 'gemma-4-e4b-it', 'vl32b': 'qwen3-vl-32b',
+  'qemb4': 'qwen3-embedding-4b', 'qemb8': 'qwen3-embedding-8b',
+  'gemmaemb': 'embeddinggemma-300m', 'qrerank4': 'qwen3-reranker-4b',
 };
 
 function modelEntryName(inst) {
@@ -746,16 +775,23 @@ function modelEntryName(inst) {
   return `${base}-${ctxStr}${npStr}`;
 }
 
+const NO_MMPROJ_IDS = new Set([
+  'q0.8b','q2b','q4b','q9b','q9b-mtp','q27b','q27b-mtp',
+  'q35a3b','devs22b','gptoss20','r1-32b','hymt2',
+]);
+
 function modelEntryCmd(inst) {
   const m = getModel(inst.mid);
   const tCtx = totalCtx(inst);
   const hf = HF_REPOS[m.id] || m.id;
   const llamaMacro = m.id === 'glm-ocr' ? '${llama-no-fa}' : '${llama}';
-  const noMmproj = (m.id === 'q27b' || m.id === 'q27b-mtp') ? ' ${no-mmproj}' : '';
+  const noMmproj = NO_MMPROJ_IDS.has(m.id) ? ' ${no-mmproj}' : '';
   const ctxArg = `--ctx-size ${tCtx}`;
-  const npArg = (!m.mtp && inst.np > 1) ? ` -np ${inst.np}` : '';
+  const embedArgs = m.embed ? ' --embedding --pooling last' : '';
+  const rerankArgs = m.rerank ? ' --reranking' : '';
+  const npArg = (!m.mtp && !m.embed && !m.rerank && inst.np > 1) ? ` -np ${inst.np}` : '';
   const mtpArgs = m.mtp ? ' --spec-type draft-mtp --spec-draft-n-max 3 -np 1' : '';
-  return `${llamaMacro} -hf ${hf}${noMmproj} ${ctxArg}${npArg}${mtpArgs}`;
+  return `${llamaMacro} -hf ${hf}${noMmproj} ${ctxArg}${embedArgs}${rerankArgs}${npArg}${mtpArgs}`;
 }
 
 function shortVarName(inst, idx) {

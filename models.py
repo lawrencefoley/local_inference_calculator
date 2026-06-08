@@ -410,6 +410,27 @@ _RAW_MODEL_GROUPS: tuple[LLMModel, ...] = (
         precision_default="fp16",
         kv_cache_mb_per_token=0.15,
     ),
+    LLMModel(
+        name="qwen3.5 2B",
+        params_billion=2,
+        architecture="decoder-only",
+        precision_default="fp16",
+        kv_cache_mb_per_token=0.15,
+    ),
+    LLMModel(
+        name="qwen3.5 4B",
+        params_billion=4,
+        architecture="decoder-only",
+        precision_default="fp16",
+        kv_cache_mb_per_token=0.30,
+    ),
+    LLMModel(
+        name="Gemma 4 E4B",
+        params_billion=4,
+        architecture="decoder-only",
+        precision_default="fp16",
+        kv_cache_mb_per_token=0.27,
+    ),
     # ==========================================================================
     # MEDIUM-SMALL MODELS (7B - 10B) - Consumer GPUs, RTX 3060-4090
     # Modelos MÉDIOS-PEQUENOS (7B - 10B) - GPUs consumer, RTX 3060-4090
@@ -722,6 +743,13 @@ _RAW_MODEL_GROUPS: tuple[LLMModel, ...] = (
         precision_default="fp16",
         kv_cache_mb_per_token=0.8,
     ),
+    LLMModel(
+        name="Gemma 4 12B",
+        params_billion=12,
+        architecture="decoder-only",
+        precision_default="fp16",
+        kv_cache_mb_per_token=0.90,
+    ),
     # ==========================================================================
     # MEDIUM MODELS (13B - 40B) - High-end consumer, datacenter entry
     # Modelos MÉDIOS (13B - 40B) - Consumer high-end, entrada datacenter
@@ -816,6 +844,41 @@ _RAW_MODEL_GROUPS: tuple[LLMModel, ...] = (
         architecture="decoder-only",
         precision_default="fp16",
         kv_cache_mb_per_token=1.7,
+    ),
+    LLMModel(
+        name="Devstral Small 2505 22B",
+        params_billion=22,
+        architecture="decoder-only",
+        precision_default="fp16",
+        kv_cache_mb_per_token=1.40,
+    ),
+    LLMModel(
+        name="qwen3.6 27B",
+        params_billion=27,
+        architecture="decoder-only",
+        precision_default="fp16",
+        kv_cache_mb_per_token=1.60,
+    ),
+    LLMModel(
+        name="qwen3.6 35B",
+        params_billion=35,
+        architecture="moe",
+        precision_default="fp16",
+        kv_cache_mb_per_token=0.35,
+    ),
+    LLMModel(
+        name="Gemma 4 31B",
+        params_billion=31,
+        architecture="decoder-only",
+        precision_default="fp16",
+        kv_cache_mb_per_token=1.75,
+    ),
+    LLMModel(
+        name="qwen3-vl 32B",
+        params_billion=32,
+        architecture="decoder-only",
+        precision_default="fp16",
+        kv_cache_mb_per_token=1.70,
     ),
     # ==========================================================================
     # LARGE MODELS (70B - 100B) - Datacenter GPUs, A100 40GB-80GB
@@ -1010,6 +1073,13 @@ _RAW_MODEL_GROUPS: tuple[LLMModel, ...] = (
         architecture="decoder-only",
         precision_default="fp16",
         kv_cache_mb_per_token=0.1,
+    ),
+    LLMModel(
+        name="qwen3-reranker 4B",
+        params_billion=4,
+        architecture="decoder-only",
+        precision_default="fp16",
+        kv_cache_mb_per_token=0.30,
     ),
 )
 
