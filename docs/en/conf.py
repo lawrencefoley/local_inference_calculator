@@ -3,36 +3,37 @@
 # For the full list of built-in configuration values, see the documentation:
 # https://www.sphinx-doc.org/en/master/usage/configuration.html
 
-import sys
 import os
-sys.path.insert(0, os.path.abspath('../..'))
+import sys
+
+sys.path.insert(0, os.path.abspath("../.."))
 
 # -- Project information -----------------------------------------------------
-project = 'Local Inference Calculator'
-copyright = '2025, Local Inference Calculator'
-author = 'Local Inference Calculator'
-release = '0.1.0'
-language = 'en'
+project = "Local Inference Calculator"
+copyright = "2025, Local Inference Calculator"
+author = "Local Inference Calculator"
+release = "0.1.0"
+language = "en"
 
 # -- General configuration ---------------------------------------------------
 extensions = [
-    'sphinx.ext.autodoc',
-    'sphinx.ext.napoleon',
-    'sphinx.ext.viewcode',
-    'sphinx.ext.intersphinx',
+    "sphinx.ext.autodoc",
+    "sphinx.ext.napoleon",
+    "sphinx.ext.viewcode",
+    "sphinx.ext.intersphinx",
 ]
 
-templates_path = ['../_templates']
-exclude_patterns = ['../_build', 'Thumbs.db', '.DS_Store']
+templates_path = ["../_templates"]
+exclude_patterns = ["../_build", "Thumbs.db", ".DS_Store"]
 
 # -- Options for HTML output -------------------------------------------------
-html_theme = 'sphinx_rtd_theme'
-html_static_path = ['../_static']
+html_theme = "sphinx_rtd_theme"
+html_static_path = ["../_static"]
 html_context = {
-    'language': 'en',
-    'languages': ['en', 'pt_BR'],
-    'current_language': 'en',
-    'language_links': True,
+    "language": "en",
+    "languages": ["en", "pt_BR"],
+    "current_language": "en",
+    "language_links": True,
 }
 
 # Napoleon settings
@@ -53,16 +54,16 @@ napoleon_attr_annotations = True
 
 # Autodoc settings
 autodoc_default_options = {
-    'members': True,
-    'member-order': 'bysource',
-    'special-members': '__init__',
-    'undoc-members': True,
-    'exclude-members': '__weakref__'
+    "members": True,
+    "member-order": "bysource",
+    "special-members": "__init__",
+    "undoc-members": True,
+    "exclude-members": "__weakref__",
 }
 
 # Intersphinx mapping
 intersphinx_mapping = {
-    'python': ('https://docs.python.org/3', None),
+    "python": ("https://docs.python.org/3", None),
 }
 
 # Language switcher (custom links)

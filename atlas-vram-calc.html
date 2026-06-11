@@ -1,0 +1,876 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Atlas VRAM Calculator</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: 'Segoe UI', system-ui, sans-serif;
+  background: #0d0d1a;
+  color: #e0e0f0;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+header {
+  background: #13132a;
+  border-bottom: 1px solid #1e1e3f;
+  padding: 14px 24px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+header h1 { font-size: 1.05rem; color: #a78bfa; letter-spacing: -0.02em; }
+header .gpu-badge {
+  font-size: 0.72rem;
+  background: #1e1e3f;
+  border: 1px solid #2a2a5a;
+  border-radius: 20px;
+  padding: 3px 10px;
+  color: #888;
+}
+header .budget-badge {
+  font-size: 0.72rem;
+  background: rgba(167,139,250,0.1);
+  border: 1px solid rgba(167,139,250,0.25);
+  border-radius: 20px;
+  padding: 3px 10px;
+  color: #a78bfa;
+  margin-left: auto;
+}
+.layout {
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  flex: 1;
+  overflow: hidden;
+  height: calc(100vh - 49px);
+}
+
+/* ── Library ── */
+.library {
+  background: #111124;
+  border-right: 1px solid #1e1e3f;
+  overflow-y: auto;
+  padding: 14px 12px;
+}
+.lib-group-label {
+  font-size: 0.62rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: #444;
+  margin: 14px 4px 6px;
+}
+.lib-group-label:first-child { margin-top: 0; }
+.lib-card {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #181830;
+  border: 1px solid #1e1e3f;
+  border-left: 3px solid var(--c);
+  border-radius: 7px;
+  padding: 8px 10px;
+  margin-bottom: 5px;
+  cursor: pointer;
+  transition: background 0.12s;
+}
+.lib-card:hover { background: #202040; }
+.lib-card-info { flex: 1; min-width: 0; }
+.lib-card-name { font-size: 0.82rem; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.lib-card-stats { font-size: 0.67rem; color: #666; margin-top: 2px; }
+.lib-add-btn {
+  background: var(--c);
+  color: #000;
+  border: none;
+  border-radius: 50%;
+  width: 22px; height: 22px;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+  opacity: 0.85;
+  transition: opacity 0.12s;
+}
+.lib-add-btn:hover { opacity: 1; }
+
+/* ── Right panel ── */
+.right {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* ── VRAM bar ── */
+.vram-panel {
+  background: #13132a;
+  border-bottom: 1px solid #1e1e3f;
+  padding: 16px 20px 14px;
+  flex-shrink: 0;
+}
+.vram-top {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+.vram-used { font-size: 1.6rem; font-weight: 700; color: #a78bfa; letter-spacing: -0.03em; }
+.vram-of { font-size: 0.8rem; color: #555; }
+.vram-headroom {
+  margin-left: auto;
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+.vram-headroom.ok   { color: #4ade80; }
+.vram-headroom.warn { color: #facc15; }
+.vram-headroom.over { color: #f87171; }
+
+.bar-track {
+  background: #080816;
+  border-radius: 6px;
+  height: 32px;
+  position: relative;
+  overflow: visible;
+}
+.bar-fill {
+  height: 100%;
+  display: flex;
+  border-radius: 6px;
+  overflow: hidden;
+  position: relative;
+}
+.bar-seg-w { height: 100%; transition: width 0.25s; }
+.bar-seg-k { height: 100%; opacity: 0.45; transition: width 0.25s; }
+.budget-tick {
+  position: absolute;
+  right: 0; top: -4px; bottom: -4px;
+  width: 2px;
+  background: rgba(255,255,255,0.15);
+  border-radius: 2px;
+}
+.budget-tick::after {
+  content: 'Budget';
+  position: absolute;
+  top: -16px;
+  right: 0;
+  font-size: 0.6rem;
+  color: #555;
+  white-space: nowrap;
+}
+.bar-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 8px;
+}
+.bar-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.7rem;
+  color: #888;
+}
+.legend-swatch {
+  width: 10px; height: 10px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+.legend-detail { color: #555; }
+
+/* ── Loaded models ── */
+.loaded-area {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px 20px;
+}
+.loaded-empty {
+  text-align: center;
+  color: #333;
+  padding: 60px 20px;
+  font-size: 0.88rem;
+}
+.loaded-empty span { font-size: 2rem; display: block; margin-bottom: 10px; }
+
+.inst-card {
+  background: #13132a;
+  border: 1px solid #1e1e3f;
+  border-left: 4px solid var(--c);
+  border-radius: 10px;
+  padding: 14px 16px;
+  margin-bottom: 12px;
+}
+.inst-header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 10px;
+}
+.inst-name { font-size: 0.9rem; font-weight: 600; flex: 1; }
+.badge {
+  font-size: 0.62rem;
+  border-radius: 4px;
+  padding: 2px 6px;
+  margin-left: 6px;
+  font-weight: 500;
+}
+.badge-mtp { background: rgba(251,146,60,0.15); color: #fb923c; border: 1px solid rgba(251,146,60,0.3); }
+.badge-fixed { background: rgba(148,163,184,0.1); color: #94a3b8; border: 1px solid rgba(148,163,184,0.2); }
+.remove-btn {
+  background: none;
+  border: 1px solid #2a2a4a;
+  color: #555;
+  border-radius: 5px;
+  padding: 3px 10px;
+  cursor: pointer;
+  font-size: 0.72rem;
+  transition: all 0.12s;
+}
+.remove-btn:hover { border-color: #f87171; color: #f87171; }
+
+.inst-controls {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: 16px;
+  align-items: start;
+}
+.ctrl-ctx { display: flex; flex-direction: column; gap: 5px; }
+.ctrl-label {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.7rem;
+  color: #666;
+}
+.ctrl-val { color: var(--c); font-weight: 700; font-size: 0.82rem; }
+.per-slot { color: #555; font-size: 0.7rem; margin-top: 2px; }
+input[type=range] {
+  width: 100%;
+  height: 4px;
+  accent-color: var(--c);
+  cursor: pointer;
+}
+.range-limits {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.62rem;
+  color: #333;
+  margin-top: 2px;
+}
+
+.ctrl-np {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  min-width: 60px;
+}
+.ctrl-np label { font-size: 0.68rem; color: #666; }
+.np-input {
+  width: 52px;
+  background: #0a0a18;
+  border: 1px solid #2a2a4a;
+  border-radius: 6px;
+  color: #e0e0f0;
+  text-align: center;
+  padding: 5px;
+  font-size: 0.9rem;
+}
+.np-input:disabled { opacity: 0.4; cursor: not-allowed; }
+.np-note { font-size: 0.6rem; color: #555; text-align: center; }
+
+.ctrl-total {
+  text-align: right;
+  min-width: 100px;
+}
+.ctrl-total-mb { font-size: 1.15rem; font-weight: 700; color: var(--c); }
+.ctrl-total-label { font-size: 0.62rem; color: #444; margin-top: 1px; }
+
+.inst-breakdown {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid #1a1a38;
+  font-size: 0.7rem;
+  color: #666;
+}
+.bk-item b { color: #a78bfa; font-weight: 600; }
+
+.inst-minibar {
+  height: 4px;
+  background: #080816;
+  border-radius: 2px;
+  margin-top: 8px;
+  display: flex;
+  overflow: hidden;
+}
+
+/* ── Config output ── */
+.config-section {
+  margin-top: 20px;
+  border: 1px solid #1e1e3f;
+  border-radius: 10px;
+  overflow: hidden;
+}
+.config-header {
+  display: flex;
+  align-items: center;
+  padding: 10px 14px;
+  background: #13132a;
+  border-bottom: 1px solid #1e1e3f;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #666;
+}
+.copy-btn {
+  margin-left: auto;
+  background: #1e1e3f;
+  border: 1px solid #2a2a5a;
+  color: #a78bfa;
+  border-radius: 5px;
+  padding: 3px 12px;
+  font-size: 0.72rem;
+  cursor: pointer;
+  transition: background 0.12s;
+}
+.copy-btn:hover { background: #2a2a5a; }
+.copy-btn.copied { color: #4ade80; border-color: #4ade80; }
+.config-code {
+  background: #080816;
+  color: #c4c4e0;
+  font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
+  font-size: 0.75rem;
+  line-height: 1.6;
+  padding: 14px 16px;
+  margin: 0;
+  overflow-x: auto;
+  white-space: pre;
+}
+.config-comment { color: #44446a; }
+.config-key     { color: #a78bfa; }
+.config-string  { color: #86efac; }
+.config-macro   { color: #fb923c; }
+
+/* ── Scrollbar ── */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #2a2a4a; border-radius: 3px; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>⚡ Atlas VRAM Calculator</h1>
+  <span class="gpu-badge">AMD AI Pro R9700 · 32 GB GDDR6</span>
+  <select id="backend-sel" onchange="backend=this.value;render()" style="
+    background:#1e1e3f;border:1px solid #2a2a5a;border-radius:20px;
+    color:#a78bfa;font-size:0.72rem;padding:3px 10px;cursor:pointer;outline:none;
+  ">
+    <option value="vulkan" selected>Vulkan</option>
+    <option value="rocm">ROCm</option>
+  </select>
+  <span class="budget-badge">Budget: 32,400 MB</span>
+</header>
+
+<div class="layout">
+  <div class="library" id="library"></div>
+  <div class="right">
+    <div class="vram-panel">
+      <div class="vram-top">
+        <span class="vram-used" id="vram-used">0 MB</span>
+        <span class="vram-of">/ 32,400 MB</span>
+        <span class="vram-headroom ok" id="vram-headroom">32,400 MB free</span>
+      </div>
+      <div class="bar-track">
+        <div class="bar-fill" id="bar-fill"></div>
+        <div class="budget-tick"></div>
+      </div>
+      <div class="bar-legend" id="bar-legend"></div>
+    </div>
+    <div class="loaded-area" id="loaded-area">
+      <div class="loaded-empty"><span>📊</span>Add models from the library to calculate VRAM usage</div>
+    </div>
+  </div>
+</div>
+
+<script>
+const BUDGET = 32400;
+// np overhead per additional parallel slot (compute buffers scale with np)
+const NP_OVERHEAD = { rocm: 100, vulkan: 188 };
+let backend = 'vulkan';
+
+const MODELS = [
+  // Text
+  { id:'q0.8b',   name:'Qwen3.5-0.8B',     quant:'Q4_K_M',      w:979,   slope:0.0117, max:262144, color:'#4ade80' },
+  { id:'q2b',     name:'Qwen3.5-2B',        quant:'Q4_K_M',      w:1694,  slope:0.0113, max:262144, color:'#86efac' },
+  { id:'q4b',     name:'Qwen3.5-4B',        quant:'Q4_K_M',      w:3217,  slope:0.0307, max:262144, color:'#fbbf24' },
+  { id:'q9b',     name:'Qwen3.5-9B',        quant:'Q4_K_M',      w:5482,  slope:0.0312, max:262144, color:'#f97316' },
+  { id:'q9b-mtp', name:'Qwen3.5-9B-MTP',    quant:'Q4_K_M',      w:5514,  slope:0.0326, max:262144, color:'#fb923c', mtp:true },
+  { id:'q27b',    name:'Qwen3.6-27B',       quant:'Q4_K_M',      w:16395, slope:0.0613, max:229376, color:'#c084fc' },
+  { id:'q27b-mtp',name:'Qwen3.6-27B-MTP',   quant:'Q4_K_M',      w:16672, slope:0.0737, max:212992, color:'#a855f7', mtp:true },
+  // Vision
+  { id:'vl2b',    name:'Qwen3-VL-2B',       quant:'Q4_K_M +mmproj', w:2206,  slope:0.1159, max:262144, color:'#22d3ee' },
+  { id:'vl4b',    name:'Qwen3-VL-4B',       quant:'Q4_K_M +mmproj', w:3548,  slope:0.1470, max:200704, color:'#38bdf8' },
+  { id:'vl8b',    name:'Qwen3-VL-8B',       quant:'Q4_K_M +mmproj', w:5968,  slope:0.1470, max:184320, color:'#60a5fa' },
+  // Specialty
+  { id:'gemma31b',name:'Gemma-4-31B',       quant:'Q4_K_M',      w:18121, slope:0.0596, max:163840, color:'#f472b6' },
+  { id:'r1-32b',  name:'DeepSeek-R1-32B',   quant:'Q4_K_M',      w:18956, slope:0.2514, max:49152,  color:'#fb7185' },
+  { id:'hymt2',   name:'Hy-MT2-7B',         quant:'Q4_K_M',      w:4780,  slope:0.1272, max:208896, color:'#34d399' },
+  { id:'glm-ocr', name:'GLM-OCR',           quant:'Q8_0',        w:2708,  slope:0,      max:12000,  color:'#f59e0b', fixed:true },
+  // Coding / General (additional Atlas models)
+  { id:'q35a3b',  name:'Qwen3.6-35B-A3B',   quant:'Q4_K_M',      w:20300, slope:0.0700, max:147456, color:'#9333ea', mtp:true },
+  { id:'devs22b', name:'Devstral-Small-2505',quant:'Q5_K_M',      w:16200, slope:0.0530, max:16384,  color:'#e879f9' },
+  { id:'gptoss20',name:'GPT-OSS-20B',        quant:'Q4_K_M',      w:12350, slope:0.0500, max:98304,  color:'#a3e635' },
+  { id:'gem4-12', name:'Gemma-4-12B',        quant:'Q4_0',        w:7100,  slope:0.0350, max:81920,  color:'#f9a8d4' },
+  // Vision (additional)
+  { id:'gem4-e4b',name:'Gemma-4-E4B',        quant:'Q4_0 +mmproj',w:3400,  slope:0.0285, max:16384,  color:'#5eead4' },
+  { id:'vl32b',   name:'Qwen3-VL-32B',       quant:'Q4_K_M +mmproj',w:19500,slope:0.0620,max:8192,   color:'#93c5fd' },
+  // Embedding & Rerank
+  { id:'qemb4',   name:'Qwen3-Embed-4B',     quant:'Q8_0',        w:4700,  slope:0.0307, max:16384,  color:'#a78bfa', embed:true },
+  { id:'qemb8',   name:'Qwen3-Embed-8B',     quant:'Q8_0',        w:8900,  slope:0.0312, max:16384,  color:'#8b5cf6', embed:true },
+  { id:'gemmaemb',name:'EmbGemma-300M',       quant:'Q8_0',        w:600,   slope:0.0050, max:2048,   color:'#c4b5fd', embed:true },
+  { id:'qrerank4',name:'Qwen3-Reranker-4B',  quant:'Q8_0',        w:4700,  slope:0.0307, max:16384,  color:'#7c3aed', rerank:true },
+  // Voice
+  { id:'whisper', name:'Whisper STT',        quant:'small.en',    w:726,   slope:0,      max:0,      color:'#94a3b8', fixed:true },
+  { id:'kokoro',  name:'Kokoro TTS',         quant:'CPU ONNX',    w:0,     slope:0,      max:0,      color:'#cbd5e1', fixed:true },
+];
+
+const GROUPS = [
+  { label: 'Text Models',    ids: ['q0.8b','q2b','q4b','q9b','q9b-mtp','q27b','q27b-mtp','q35a3b','gem4-12'] },
+  { label: 'Vision Models',  ids: ['vl2b','vl4b','vl8b','gem4-e4b','vl32b'] },
+  { label: 'Specialty',      ids: ['gemma31b','devs22b','gptoss20','r1-32b','hymt2','glm-ocr'] },
+  { label: 'Embed & Rerank', ids: ['qemb4','qemb8','gemmaemb','qrerank4'] },
+  { label: 'Voice Services', ids: ['whisper','kokoro'] },
+];
+
+let instances = [];
+let uid = 0;
+
+function getModel(id) { return MODELS.find(m => m.id === id); }
+
+function totalCtx(inst) {
+  const m = getModel(inst.mid);
+  return Math.min(inst.ctx * inst.np, m.max); // ctx is per-agent; total = per-agent × np, capped at model max
+}
+
+function vram(inst) {
+  const m = getModel(inst.mid);
+  const kv = m.slope * Math.max(0, totalCtx(inst) - 128);
+  const npOvhd = inst.np > 1 ? (inst.np - 1) * NP_OVERHEAD[backend] : 0;
+  return m.w + kv + npOvhd;
+}
+
+function fmtMb(mb) {
+  return mb >= 1000
+    ? (mb / 1000).toFixed(1).replace(/\.0$/, '') + ' GB'
+    : Math.round(mb) + ' MB';
+}
+function fmtMbFull(mb) {
+  return mb.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ',') + ' MB';
+}
+function fmtCtx(v) {
+  if (v === 0) return '—';
+  return v >= 1024 ? (v/1024).toFixed(v%1024===0?0:1)+'k' : v+'';
+}
+
+// ── Render library ──────────────────────────────────────────
+function renderLibrary() {
+  const el = document.getElementById('library');
+  el.innerHTML = '';
+  GROUPS.forEach(g => {
+    const lbl = document.createElement('div');
+    lbl.className = 'lib-group-label';
+    lbl.textContent = g.label;
+    el.appendChild(lbl);
+    g.ids.forEach(id => {
+      const m = getModel(id);
+      if (!m) return;
+      const card = document.createElement('div');
+      card.className = 'lib-card';
+      card.style.setProperty('--c', m.color);
+      const soloVram = m.w + m.slope * Math.max(0, m.max - 128);
+      card.innerHTML = `
+        <div class="lib-card-info">
+          <div class="lib-card-name">${m.name}${m.mtp ? ' <span style="font-size:0.6rem;color:#fb923c">MTP</span>' : ''}</div>
+          <div class="lib-card-stats">${m.w.toLocaleString()} MB${m.slope ? ` · ${m.slope.toFixed(4)}/tok` : ' · fixed'} · max ${fmtCtx(m.max)}</div>
+        </div>
+        <button class="lib-add-btn" title="Add to config">+</button>
+      `;
+      card.querySelector('.lib-add-btn').addEventListener('click', () => addInstance(id));
+      el.appendChild(card);
+    });
+  });
+}
+
+// ── Add / Remove ────────────────────────────────────────────
+function maxPerAgent(m, np) {
+  return m.fixed ? m.max : Math.floor(m.max / Math.max(1, np) / 4096) * 4096;
+}
+
+function addInstance(mid) {
+  const m = getModel(mid);
+  const defaultCtx = m.fixed ? m.max : Math.min(maxPerAgent(m, 1), 65536);
+  instances.push({ iid: uid++, mid, ctx: defaultCtx, np: 1 });
+  render();
+}
+function removeInstance(iid) {
+  instances = instances.filter(i => i.iid !== iid);
+  render();
+}
+
+// ── Render VRAM bar ─────────────────────────────────────────
+function renderBar() {
+  const total = instances.reduce((s, i) => s + vram(i), 0);
+  const fill = document.getElementById('bar-fill');
+  const legend = document.getElementById('bar-legend');
+  const usedEl = document.getElementById('vram-used');
+  const hdEl = document.getElementById('vram-headroom');
+
+  usedEl.textContent = fmtMbFull(total);
+
+  // segments — widths are share of TOTAL (not budget), so bar-fill growing doesn't distort individual segments
+  const segs = instances.map(inst => {
+    const m = getModel(inst.mid);
+    const tCtx = totalCtx(inst);
+    const kv = m.slope * Math.max(0, tCtx - 128) + (inst.np > 1 ? (inst.np - 1) * NP_OVERHEAD[backend] : 0);
+    const wPct = total > 0 ? (m.w / total) * 100 : 0;
+    const kPct = total > 0 ? (kv / total) * 100 : 0;
+    return { m, wPct, kPct, kv, inst };
+  });
+
+  fill.innerHTML = segs.map(s =>
+    `<div class="bar-seg-w" style="width:${s.wPct}%;background:${s.m.color}" title="${s.m.name} weights: ${fmtMbFull(s.m.w)}"></div>` +
+    (s.kPct > 0 ? `<div class="bar-seg-k" style="width:${s.kPct}%;background:${s.m.color}" title="${s.m.name} KV: ${fmtMbFull(s.kv)}"></div>` : '')
+  ).join('');
+
+  // overflow indicator
+  if (total > BUDGET) {
+    fill.style.width = '100%';
+    fill.style.boxShadow = `inset 0 0 0 2px #f87171`;
+  } else {
+    fill.style.width = `${(total / BUDGET) * 100}%`;
+    fill.style.boxShadow = 'none';
+  }
+
+  // legend
+  legend.innerHTML = segs.map(s =>
+    `<div class="bar-legend-item">
+       <div class="legend-swatch" style="background:${s.m.color}"></div>
+       <span>${s.m.name}</span>
+       <span class="legend-detail">${fmtMbFull(vram(s.inst))}</span>
+     </div>`
+  ).join('');
+
+  // headroom
+  const rem = BUDGET - total;
+  const pct = (total / BUDGET * 100).toFixed(1);
+  if (total > BUDGET) {
+    hdEl.className = 'vram-headroom over';
+    hdEl.textContent = `⚠ Over by ${fmtMbFull(Math.abs(rem))} (${pct}%)`;
+  } else if (rem < 1500) {
+    hdEl.className = 'vram-headroom warn';
+    hdEl.textContent = `⚠ ${fmtMbFull(rem)} free (${pct}% used)`;
+  } else {
+    hdEl.className = 'vram-headroom ok';
+    hdEl.textContent = `✓ ${fmtMbFull(rem)} free (${pct}% used)`;
+  }
+
+  updateConfigCode();
+}
+
+// ── In-place update (called on slider drag — never rebuilds DOM) ──
+function updateInstDisplay(iid) {
+  const inst = instances.find(i => i.iid === iid);
+  const m = getModel(inst.mid);
+  const totalVram = vram(inst);
+  const tCtx = totalCtx(inst);
+  const kv = m.slope * Math.max(0, tCtx - 128);
+  const npOvhd = inst.np > 1 ? (inst.np - 1) * NP_OVERHEAD[backend] : 0;
+
+  const q = id => document.getElementById(id);
+  if (q(`ctxval-${iid}`))  q(`ctxval-${iid}`).textContent  = fmtCtx(inst.ctx);
+  if (q(`perslot-${iid}`)) q(`perslot-${iid}`).innerHTML   =
+    inst.np > 1
+      ? `total KV: ${fmtCtx(inst.ctx)} × ${inst.np} = <b style="color:var(--c)">${fmtCtx(tCtx)}</b>`
+      : `total KV: ${fmtCtx(tCtx)}`;
+  if (q(`total-${iid}`))   q(`total-${iid}`).textContent   = fmtMbFull(totalVram);
+  if (q(`pct-${iid}`))     q(`pct-${iid}`).textContent     = `${((totalVram/BUDGET)*100).toFixed(1)}% of budget`;
+  if (q(`kv-${iid}`))      q(`kv-${iid}`).textContent      = fmtMbFull(kv);
+  if (q(`npovhd-${iid}`))  q(`npovhd-${iid}`).textContent  = fmtMbFull(npOvhd);
+
+  const mb = q(`mb-${iid}`);
+  if (mb) mb.innerHTML =
+    `<div class="bar-seg-w" style="width:${(m.w/totalVram)*100}%;background:${m.color}"></div>` +
+    `<div class="bar-seg-k" style="width:${((kv+npOvhd)/totalVram)*100}%;background:${m.color};opacity:0.45"></div>`;
+}
+
+// ── Render loaded models (full rebuild — only on add/remove/np change) ──
+function renderLoaded() {
+  const el = document.getElementById('loaded-area');
+  if (instances.length === 0) {
+    el.innerHTML = '<div class="loaded-empty"><span>📊</span>Add models from the library to calculate VRAM usage</div>';
+    return;
+  }
+  el.innerHTML = '';
+
+  instances.forEach(inst => {
+    const m = getModel(inst.mid);
+    const totalVram = vram(inst);
+    const kv = m.slope * Math.max(0, inst.ctx - 128);
+    const npOvhd = inst.np > 1 ? (inst.np - 1) * NP_OVERHEAD[backend] : 0;
+    const perSlotCtx = inst.np > 1 ? Math.floor(inst.ctx / inst.np) : 0;
+
+    const card = document.createElement('div');
+    card.className = 'inst-card';
+    card.style.setProperty('--c', m.color);
+
+    const sliderMax = maxPerAgent(m, inst.np);
+    const tCtx = totalCtx(inst);
+    const ctxSection = m.fixed
+      ? `<div style="font-size:0.8rem;color:#666;padding-top:8px">Fixed context: <b style="color:var(--c)">${fmtCtx(inst.ctx)}</b></div>`
+      : `<div class="ctrl-ctx">
+           <div class="ctrl-label">
+             <span>Context <b>per agent</b></span>
+             <span class="ctrl-val" id="ctxval-${inst.iid}">${fmtCtx(inst.ctx)}</span>
+           </div>
+           <input type="range" min="4096" max="${sliderMax}" step="4096" value="${Math.min(inst.ctx, sliderMax)}" data-iid="${inst.iid}">
+           <div class="range-limits"><span>4k</span><span>${fmtCtx(sliderMax)} max per agent</span></div>
+           <div class="per-slot" id="perslot-${inst.iid}" style="color:#666;margin-top:2px">
+             ${inst.np > 1 ? `total KV: ${fmtCtx(inst.ctx)} × ${inst.np} = <b style="color:var(--c)">${fmtCtx(tCtx)}</b>` : `total KV: ${fmtCtx(tCtx)}`}
+           </div>
+         </div>`;
+
+    const npSection = m.fixed ? '' :
+      `<div class="ctrl-np">
+         <label>n-parallel</label>
+         <input class="np-input" type="number" min="1" max="8" value="${inst.np}"
+                data-iid="${inst.iid}">
+         <div class="np-note">agents/workers</div>
+       </div>`;
+
+    card.innerHTML = `
+      <div class="inst-header">
+        <span class="inst-name">${m.name}</span>
+        ${m.mtp ? '<span class="badge badge-mtp">MTP</span>' : ''}
+        ${m.fixed ? '<span class="badge badge-fixed">fixed</span>' : ''}
+        <button class="remove-btn" data-iid="${inst.iid}">✕ remove</button>
+      </div>
+      <div class="inst-controls">
+        ${ctxSection}
+        ${npSection}
+        <div class="ctrl-total">
+          <div class="ctrl-total-mb" id="total-${inst.iid}">${fmtMbFull(totalVram)}</div>
+          <div class="ctrl-total-label">VRAM</div>
+          <div style="font-size:0.65rem;color:#555;margin-top:4px" id="pct-${inst.iid}">${((totalVram/BUDGET)*100).toFixed(1)}% of budget</div>
+        </div>
+      </div>
+      <div class="inst-breakdown">
+        <span class="bk-item">weights: <b>${fmtMbFull(m.w)}</b></span>
+        ${m.slope ? `<span class="bk-item">KV cache: <b id="kv-${inst.iid}">${fmtMbFull(kv)}</b></span>` : ''}
+        ${npOvhd > 0 || !m.mtp && !m.fixed ? `<span class="bk-item" ${npOvhd === 0 ? 'style="display:none"' : ''}>np overhead: <b id="npovhd-${inst.iid}">${fmtMbFull(npOvhd)}</b></span>` : ''}
+        ${m.slope ? `<span class="bk-item">slope: <b>${m.slope.toFixed(4)} MB/tok</b></span>` : ''}
+      </div>
+      <div class="inst-minibar" id="mb-${inst.iid}">
+        <div class="bar-seg-w" style="width:${(m.w/totalVram)*100}%;background:${m.color}"></div>
+        <div class="bar-seg-k" style="width:${((kv+npOvhd)/totalVram)*100}%;background:${m.color};opacity:0.45"></div>
+      </div>
+    `;
+    el.appendChild(card);
+  });
+
+  // Sliders: update in-place, never rebuild
+  el.querySelectorAll('input[type=range]').forEach(input => {
+    input.addEventListener('input', e => {
+      const iid = parseInt(e.target.dataset.iid);
+      const inst = instances.find(i => i.iid === iid);
+      if (!inst) return;
+      inst.ctx = parseInt(e.target.value);
+      updateInstDisplay(iid);
+      renderBar();
+    });
+  });
+
+  // np: cap per-agent ctx if needed, then full rebuild
+  el.querySelectorAll('.np-input').forEach(input => {
+    input.addEventListener('change', e => {
+      const iid = parseInt(e.target.dataset.iid);
+      const inst = instances.find(i => i.iid === iid);
+      if (!inst) return;
+      inst.np = Math.max(1, parseInt(e.target.value) || 1);
+      const m = getModel(inst.mid);
+      inst.ctx = Math.min(inst.ctx, maxPerAgent(m, inst.np));
+      render();
+    });
+  });
+
+  el.querySelectorAll('.remove-btn').forEach(btn => {
+    btn.addEventListener('click', e => {
+      removeInstance(parseInt(e.currentTarget.dataset.iid));
+    });
+  });
+
+  // Config section
+  const configSection = document.createElement('div');
+  configSection.className = 'config-section';
+  configSection.innerHTML = `
+    <div class="config-header">
+      Generated llama-swap config
+      <button class="copy-btn" onclick="copyConfig()">Copy</button>
+    </div>
+    <pre class="config-code" id="config-code">${generateConfig()}</pre>
+  `;
+  el.appendChild(configSection);
+}
+
+// ── Config generation ────────────────────────────────────────
+const HF_REPOS = {
+  'q0.8b':    'unsloth/Qwen3.5-0.8B-GGUF',
+  'q2b':      'unsloth/Qwen3.5-2B-GGUF',
+  'q4b':      'unsloth/Qwen3.5-4B-GGUF',
+  'q9b':      'unsloth/Qwen3.5-9B-GGUF',
+  'q9b-mtp':  'unsloth/Qwen3.5-9B-MTP-GGUF',
+  'q27b':     'unsloth/Qwen3.6-27B-GGUF',
+  'q27b-mtp': 'unsloth/Qwen3.6-27B-MTP-GGUF',
+  'vl2b':     'Qwen/Qwen3-VL-2B-Instruct-GGUF',
+  'vl4b':     'Qwen/Qwen3-VL-4B-Instruct-GGUF',
+  'vl8b':     'Qwen/Qwen3-VL-8B-Instruct-GGUF',
+  'gemma31b': 'unsloth/gemma-4-31B-it-GGUF',
+  'r1-32b':   'bartowski/DeepSeek-R1-Distill-Qwen-32B-GGUF:Q4_K_M',
+  'hymt2':    'tencent/Hy-MT2-7B-GGUF:Q4_K_M',
+  'glm-ocr':  'ggml-org/GLM-OCR-GGUF',
+  'q35a3b':   'unsloth/Qwen3.6-35B-A3B-MTP-GGUF:Q4_K_M',
+  'devs22b':  'mistralai/Devstral-Small-2505_gguf:Q5_K_M',
+  'gptoss20': 'ggml-org/gpt-oss-20b-GGUF:Q4_K_M',
+  'gem4-12':  'google/gemma-4-12B-it-qat-q4_0-gguf:Q4_0',
+  'gem4-e4b': 'google/gemma-4-E4B-it-qat-q4_0-gguf:Q4_0',
+  'vl32b':    'Qwen/Qwen3-VL-32B-Instruct-GGUF:Q4_K_M',
+  'qemb4':    'Qwen/Qwen3-Embedding-4B-GGUF:Q8_0',
+  'qemb8':    'Qwen/Qwen3-Embedding-8B-GGUF:Q8_0',
+  'gemmaemb': 'google/embeddinggemma-300m-GGUF:Q8_0',
+  'qrerank4': 'Voodisss/Qwen3-Reranker-4B-GGUF-llama_cpp:Q8_0',
+};
+
+const BASE_NAMES = {
+  'q0.8b': 'qwen3.5-0.8b', 'q2b': 'qwen3.5-2b', 'q4b': 'qwen3.5-4b',
+  'q9b': 'qwen3.5-9b', 'q9b-mtp': 'qwen3.5-9b-mtp',
+  'q27b': 'qwen3.6-27b', 'q27b-mtp': 'qwen3.6-27b-mtp',
+  'vl2b': 'qwen3-vl-2b', 'vl4b': 'qwen3-vl-4b', 'vl8b': 'qwen3-vl-8b',
+  'gemma31b': 'gemma-4-31b-it', 'r1-32b': 'deepseek-r1-32b',
+  'hymt2': 'hy-mt2-7b', 'glm-ocr': 'glm-ocr',
+  'q35a3b': 'qwen3.6-35b-a3b-mtp', 'devs22b': 'devstral-small-2505',
+  'gptoss20': 'gpt-oss-20b', 'gem4-12': 'gemma-4-12b-it',
+  'gem4-e4b': 'gemma-4-e4b-it', 'vl32b': 'qwen3-vl-32b',
+  'qemb4': 'qwen3-embedding-4b', 'qemb8': 'qwen3-embedding-8b',
+  'gemmaemb': 'embeddinggemma-300m', 'qrerank4': 'qwen3-reranker-4b',
+};
+
+function modelEntryName(inst) {
+  const m = getModel(inst.mid);
+  const base = BASE_NAMES[m.id] || m.id;
+  const tCtx = totalCtx(inst);
+  const ctxStr = fmtCtx(tCtx).replace('.', '_');
+  const npStr = inst.np > 1 ? `-np${inst.np}` : '';
+  return `${base}-${ctxStr}${npStr}`;
+}
+
+const NO_MMPROJ_IDS = new Set([
+  'q0.8b','q2b','q4b','q9b','q9b-mtp','q27b','q27b-mtp',
+  'q35a3b','devs22b','gptoss20','r1-32b','hymt2',
+]);
+
+function modelEntryCmd(inst) {
+  const m = getModel(inst.mid);
+  const tCtx = totalCtx(inst);
+  const hf = HF_REPOS[m.id] || m.id;
+  const llamaMacro = m.id === 'glm-ocr' ? '${llama-no-fa}' : '${llama}';
+  const noMmproj = NO_MMPROJ_IDS.has(m.id) ? ' ${no-mmproj}' : '';
+  const ctxArg = `--ctx-size ${tCtx}`;
+  const embedArgs = m.embed ? ' --embedding --pooling last' : '';
+  const rerankArgs = m.rerank ? ' --reranking' : '';
+  const npArg = (!m.mtp && !m.embed && !m.rerank && inst.np > 1) ? ` -np ${inst.np}` : '';
+  const mtpArgs = m.mtp ? ' --spec-type draft-mtp --spec-draft-n-max 3 -np 1' : '';
+  return `${llamaMacro} -hf ${hf}${noMmproj} ${ctxArg}${embedArgs}${rerankArgs}${npArg}${mtpArgs}`;
+}
+
+function shortVarName(inst, idx) {
+  const m = getModel(inst.mid);
+  const base = BASE_NAMES[m.id] || m.id;
+  // make a short alias: take first letters of each segment
+  const short = base.replace(/[0-9.]/g, '').replace(/-+/g, '-').replace(/^-|-$/g, '');
+  return short.length <= 6 ? short : `m${idx}`;
+}
+
+function generateConfig() {
+  const llm = instances.filter(i => !['whisper','kokoro'].includes(i.mid));
+  const voice = instances.filter(i => ['whisper','kokoro'].includes(i.mid));
+
+  if (instances.length === 0) return '# Add models above to generate config';
+
+  const needsNoFa = llm.some(i => i.mid === 'glm-ocr');
+  const lines = [];
+
+  // Macros
+  lines.push('macros:');
+  lines.push('  "llama":       "llama-server --port ${PORT} --host 0.0.0.0 --n-gpu-layers 999 -fa 1"');
+  if (needsNoFa) {
+    lines.push('  "llama-no-fa": "llama-server --port ${PORT} --host 0.0.0.0 --n-gpu-layers 999"');
+  }
+  lines.push('  "no-mmproj":   "--no-mmproj"');
+  lines.push('');
+  lines.push('');
+
+  // Model entries
+  lines.push('models:');
+
+  if (voice.length > 0) {
+    lines.push('  # Voice services (whisper/kokoro) are already in your config — no changes needed.');
+    lines.push('');
+  }
+
+  llm.forEach(inst => {
+    const m = getModel(inst.mid);
+    const name = modelEntryName(inst);
+    const cmd = modelEntryCmd(inst);
+    const tCtx = totalCtx(inst);
+    const vramMb = vram(inst);
+
+    lines.push(`  # ${m.name} — ${fmtMbFull(vramMb)} VRAM`);
+    if (inst.np > 1) {
+      lines.push(`  # ${inst.np} agents × ${fmtCtx(inst.ctx)} context each = ${fmtCtx(tCtx)} total KV`);
+    }
+    lines.push(`  "${name}":`);
+    lines.push(`    cmd: "${cmd}"`);
+    lines.push('');
+  });
+
+  return lines.join('\n');
+}
+
+function updateConfigCode() {
+  const el = document.getElementById('config-code');
+  if (el) el.textContent = generateConfig();
+}
+
+function copyConfig() {
+  const code = generateConfig();
+  navigator.clipboard.writeText(code).then(() => {
+    const btn = document.querySelector('.copy-btn');
+    if (!btn) return;
+    btn.textContent = 'Copied!';
+    btn.classList.add('copied');
+    setTimeout(() => { btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 1500);
+  });
+}
+
+function render() {
+  renderBar();
+  renderLoaded();
+}
+
+renderLibrary();
+render();
+</script>
+</body>
+</html>

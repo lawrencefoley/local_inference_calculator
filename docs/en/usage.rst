@@ -11,7 +11,7 @@ To see all available models in the database:
 
 .. code-block:: bash
 
-   python main.py --list-models
+   uv run llmfit --list-models
 
 This shows model name, size, architecture, and KV cache requirements for each model.
 
@@ -22,8 +22,8 @@ To check VRAM requirements for a specific model:
 
 .. code-block:: bash
 
-   python main.py --model 7 --context 8192
-   python main.py -m 70 -c 16384 -q int4
+   uv run llmfit --model 7 --context 8192
+   uv run llmfit -m 70 -c 16384 -q int4
 
 The output includes:
 
@@ -38,21 +38,44 @@ To see all model × GPU combinations:
 
 .. code-block:: bash
 
-   python main.py --context 4096
+   uv run llmfit --context 4096
 
 Or with a larger context:
 
 .. code-block:: bash
 
-   python main.py -c 8192
+   uv run llmfit -c 8192
 
+
+Max Context for a VRAM Budget
+-----------------------------
+
+Use ``--vram`` with a quantization to see which models fit and their estimated maximum context:
+
+.. code-block:: bash
+
+   uv run llmfit --vram 24 --quantization int4
+   uv run llmfit --vram 16 --quantization fp16 --mode conservative
+
+Combine it with ``--model``, ``--params-b``, or ``--config`` to check a single model.
+
+Hugging Face config.json
+------------------------
+
+Derive KV cache metadata from a Hugging Face ``config.json``:
+
+.. code-block:: bash
+
+   uv run llmfit --config path/to/config.json --params-b 7 --context 8192
+
+If the config does not include a parameter count, pass it with ``--params-b``. Use ``--model-name`` to override the display name.
 
 Command-Line Options
 --------------------
 
 .. code-block:: bash
 
-   python main.py [OPTIONS]
+   uv run llmfit [OPTIONS]
 
 Basic Options
 ~~~~~~~~~~~~~
@@ -80,7 +103,7 @@ Layer Offload Optimization
 
 .. code-block:: bash
 
-   --optimize-config      Show optimal layer offload configuration
+   --optimize      Show optimal layer offload configuration
 
 Calculates how many transformer layers can fit in GPU VRAM, displaying:
 
@@ -94,8 +117,8 @@ CPU Offload Analysis
 
 .. code-block:: bash
 
-   --cpu-offload          Enable CPU offload calculations
-   --system-ram GB        System RAM available in GB (default: 32.0)
+   --cpu          Enable CPU offload calculations
+   --ram GB        System RAM available in GB (default: 32.0)
    --pcie-gen GEN         PCIe generation: 3.0, 4.0, or 5.0 (default: 4.0)
 
 Calculates hybrid GPU+CPU inference configuration:
@@ -110,9 +133,9 @@ Multi-GPU Support
 
 .. code-block:: bash
 
-   --multi-gpu            Enable multi-GPU mode
-   --gpu-config CONFIG    Multi-GPU configuration (e.g., "2x4090,1x3090")
-   --multi-gpu-mode MODE  Parallelism mode: tensor or pipeline (default: tensor)
+   --multi            Enable multi-GPU mode
+   --gpus CONFIG    Multi-GPU configuration (e.g., "2x4090,1x3090")
+   --multi-mode MODE  Parallelism mode: tensor or pipeline (default: tensor)
 
 Configuration format:
 
@@ -151,31 +174,31 @@ Consumer GPUs only:
 
 .. code-block:: bash
 
-   python main.py -c 8192 --gpu-type consumer
+   uv run llmfit -c 8192 --gpu-type consumer
 
 Show only viable combinations:
 
 .. code-block:: bash
 
-   python main.py -c 4096 --only-runs
+   uv run llmfit -c 4096 --only-runs
 
 Export results to JSON:
 
 .. code-block:: bash
 
-   python main.py -c 8192 --export-json results.json
+   uv run llmfit -c 8192 --export-json results.json
 
 Use INT4 quantization for larger models:
 
 .. code-block:: bash
 
-   python main.py -c 8192 -q int4 --only-runs
+   uv run llmfit -c 8192 -q int4 --only-runs
 
 Check if a 70B model fits on RTX 4090:
 
 .. code-block:: bash
 
-   python main.py --model 70 --context 8192
+   uv run llmfit --model 70 --context 8192
 
 
 Supported Precisions

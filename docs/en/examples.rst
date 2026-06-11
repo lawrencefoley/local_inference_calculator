@@ -6,7 +6,7 @@ Example 1: List Available Models
 
 .. code-block:: bash
 
-   python main.py --list-models
+   uv run llmfit --list-models
 
 Output:
 
@@ -33,7 +33,7 @@ Example 2: How Much VRAM Do I Need for a 70B Model?
 
 .. code-block:: bash
 
-   python main.py --model 70 --context 8192
+   uv run llmfit --model 70 --context 8192
 
 Output:
 
@@ -65,8 +65,8 @@ Small models like Phi-3 Mini (3.8B) or Qwen2-0.5B use fractional sizes:
 
 .. code-block:: bash
 
-   python main.py --model 0.6 --context 8192
-   python main.py -m 3.8 -c 4096 -q int4
+   uv run llmfit --model 0.6 --context 8192
+   uv run llmfit -m 3.8 -c 4096 -q int4
 
 These models are designed for edge devices and can run on GPUs with as little as 4-6 GB VRAM.
 
@@ -77,7 +77,7 @@ Example 4: Can I Run a 70B Model with INT4 on RTX 4090?
 
 .. code-block:: bash
 
-   python main.py -m 70 -c 16384 -q int4
+   uv run llmfit -m 70 -c 16384 -q int4
 
 This shows that with INT4 quantization, a 70B model with 16k context
 requires ~34 GB, so it fits on an RTX 4090 (24 GB) but would need
@@ -90,7 +90,7 @@ Example 5: Which GPU to Buy for a 34B Model?
 
 .. code-block:: bash
 
-   python main.py --model 34 --context 8192
+   uv run llmfit --model 34 --context 8192
 
 The output will show all GPUs that can run the model, ranked by
 free VRAM percentage.
@@ -104,7 +104,7 @@ Example 6: Compare All Quantizations
 
    for q in fp32 fp16 int8 int4; do
        echo "=== $q ==="
-       python main.py -m 7 -c 8192 -q $q | grep "TOTAL VRAM"
+       uv run llmfit -m 7 -c 8192 -q $q | grep "TOTAL VRAM"
    done
 
 This clearly shows how INT4 allows much larger models on the same GPU.
@@ -116,7 +116,7 @@ Example 7: Check Google Colab Compatibility
 
 .. code-block:: bash
 
-   python main.py --model 13 --context 16384 -q int4 --gpu-type datacenter | grep -i colab
+   uv run llmfit --model 13 --context 16384 -q int4 --gpu-type datacenter | grep -i colab
 
 This quickly shows which Colab GPU tier can run your desired model.
 
@@ -127,11 +127,11 @@ Example 8: Export Results
 
 .. code-block:: bash
 
-   python main.py -c 8192 --export-json results.json
+   uv run llmfit -c 8192 --export-json results.json
 
 .. code-block:: bash
 
-   python main.py -c 8192 --export-csv results.csv
+   uv run llmfit -c 8192 --export-csv results.csv
 
 The exported files contain all combinations for further analysis.
 
@@ -172,7 +172,7 @@ Calculate optimal GPU layer distribution for a model that doesn't fully fit in V
 
 .. code-block:: bash
 
-   python main.py --model 70 --context 8192 --optimize-config --quantization int4
+   uv run llmfit --model 70 --context 8192 --optimize --quantization int4
 
 Output:
 
@@ -210,7 +210,7 @@ Analyze hybrid GPU+CPU inference with PCIe bandwidth considerations:
 
 .. code-block:: bash
 
-   python main.py --model 13 --context 8192 --cpu-offload --system-ram 64 --pcie-gen 4.0
+   uv run llmfit --model 13 --context 8192 --cpu --ram 64 --pcie-gen 4.0
 
 Output:
 
@@ -250,7 +250,7 @@ Calculate tensor parallelism across multiple GPUs:
 
 .. code-block:: bash
 
-   python main.py --params-b 405 --context 8192 --quantization int4 --multi-gpu --gpu-config "2x4090,1x3090"
+   uv run llmfit --params-b 405 --context 8192 --quantization int4 --multi --gpus "2x4090,1x3090"
 
 Output:
 
@@ -283,7 +283,7 @@ Auto-detect quantization from GGUF filename:
 
 .. code-block:: bash
 
-   python main.py --gguf-file "llama-2-7b.Q4_K_M.gguf" --context 4096
+   uv run llmfit --gguf-file "llama-2-7b.Q4_K_M.gguf" --context 4096
 
 Output:
 
@@ -312,9 +312,9 @@ Compare VRAM requirements across different model formats:
 
 .. code-block:: bash
 
-   python main.py --model 7 --context 8192 --format fp16
-   python main.py --model 7 --context 8192 --format gguf
-   python main.py --model 7 --context 8192 --format exl2
+   uv run llmfit --model 7 --context 8192 --format fp16
+   uv run llmfit --model 7 --context 8192 --format gguf
+   uv run llmfit --model 7 --context 8192 --format exl2
 
 Format overhead is automatically applied to calculations.
 

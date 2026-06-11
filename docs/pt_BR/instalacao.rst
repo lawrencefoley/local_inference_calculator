@@ -4,47 +4,35 @@ Instalação
 Requisitos
 ----------
 
-Python 3.8 ou superior.
+* Python 3.11 ou superior
+* uv
 
-Não há dependências externas além da biblioteca padrão do Python.
+Este projeto usa uv e depende do click para a interface de linha de comando.
 
 Instalação via Clonagem
 ------------------------
 
 .. code-block:: bash
 
-   git clone <repository-url>
+   git clone https://github.com/lawrencefoley/local_inference_calculator.git
    cd local_inference_calculator
-
-Instalação via pip (quando disponível)
---------------------------------------
-
-.. code-block:: bash
-
-   pip install local-inference-calculator
+   uv sync
 
 Verificação da Instalação
 --------------------------
 
 .. code-block:: bash
 
-   python main.py --help
+   uv run llmfit --help
 
 Se a mensagem de ajuda for exibida, a instalação está correta.
 
-If help message is displayed, installation is correct.
-
-Ambiente Virtual (Opcional)
-----------------------------
-
-Recomendado para isolar dependências:
+Execução como ferramenta uv
+---------------------------
 
 .. code-block:: bash
 
-   python -m venv venv
-   source venv/bin/activate  # Linux/Mac
-   # ou
-   venv\Scripts\activate  # Windows
+   uvx --from . llmfit --help
 
 Requirements para Desenvolvimento
 ----------------------------------
@@ -53,5 +41,4 @@ Para construir a documentação:
 
 .. code-block:: bash
 
-   cd docs
-   pip install -r requirements.txt
+   uv pip install -r docs/requirements.txt

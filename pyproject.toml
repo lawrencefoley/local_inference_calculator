@@ -1,0 +1,47 @@
+[project]
+name = "llmfit"
+version = "0.2.2"
+description = "Capacity planning tool for local LLM inference"
+readme = "README.md"
+requires-python = ">=3.11"
+license = "MIT"
+license-files = ["LICENSE"]
+authors = [{ name = "ygorml" }]
+dependencies = [
+    "click>=8.1.8",
+]
+
+[project.urls]
+Homepage = "https://github.com/ygorml/local_inference_calculator"
+Repository = "https://github.com/ygorml/local_inference_calculator"
+
+[project.scripts]
+llmfit = "main:cli"
+
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+py-modules = [
+    "calculator",
+    "formats",
+    "gpus",
+    "main",
+    "models",
+    "multi_gpu",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=9.0.3",
+    "ruff>=0.11.0",
+]
+
+[tool.ruff]
+line-length = 120
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP"]
+ignore = ["E501"]
