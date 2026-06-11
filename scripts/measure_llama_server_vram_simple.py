@@ -216,12 +216,29 @@ def main(
     # 3. Start container
     start_container(container_name, image, host_port, suffix, hf_cache=not no_hf_cache)
 
-    # 4. Wait for model to load
+    # 4. Wait for model to load (HTTP/log readiness)
     click.echo(f"Waiting for server (timeout {startup_timeout}s)…")
     wait_ready(container_name, host_port, startup_timeout, sample_interval)
-    time.sleep(2)  # settle
 
-    # 5. Loaded VRAM
+    # 5. Wait for VRAM to stabilize — model may still be loading into GPU memory
+    click.echo("Waiting for VRAM to stabilize…")
+    prev: int | None = None
+    stable_count = 0
+    stable_threshold = 3  # consecutive readings within tolerance
+    tolerance_mb = 2  # MiB tolerance between readings
+    while stable_count < stable_threshold:
+        if (v := get_metric()) is not None:
+            if prev is not None and abs(v - prev) > tolerance_mb * MiB:
+                stable_count = 0  # still changing
+            else:
+                stable_count += 1
+            click.echo(f"  {v / MiB:.0f} MiB (stable={stable_count}/{stable_threshold})")
+            prev = v
+        else:
+            stable_count = 0
+        time.sleep(1)
+
+    # 6. Loaded VRAM
     loaded = get_metric()
     if loaded is None:
         click.echo("Could not read loaded VRAM.", err=True)
@@ -229,7 +246,7 @@ def main(
         sys.exit(1)
     click.echo(f"  Loaded:   {loaded / MiB:.2f} MiB")
 
-    # 6. Inference VRAM — sample in a thread while sending a completion request
+    # 7. Inference VRAM — sample in a thread while sending a completion request
     click.echo("Running inference test…")
     samples: list[int] = []
     inference_duration = 10.0
@@ -249,14 +266,14 @@ def main(
     peak = max(samples) if samples else loaded
     click.echo(f"  Peak:     {peak / MiB:.2f} MiB")
 
-    # 7. Stop container
+    # 8. Stop container
     click.echo("Stopping container…")
     stop_container(container_name)
     time.sleep(1)
 
     final = get_metric() or 0
 
-    # 8. Results
+    # 9. Results
     result = {
         "suffix": suffix,
         "container_name": container_name,
